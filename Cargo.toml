@@ -1,5 +1,5 @@
 [package]
-name = "snes-image-optimizer"
+name = "snesimage"
 version = "0.1.0"
 authors = ["Jason Lynch <jason@calindora.com>"]
 edition = "2018"
@@ -7,4 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = "3.0.0-beta.1"
 image = "0.23.9"
+sdl2 = "0.34"
