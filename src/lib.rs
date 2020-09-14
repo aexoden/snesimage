@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use log::info;
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -9,6 +10,7 @@ use sdl2::rect::Point;
 extern crate image;
 
 pub mod config;
+pub mod util;
 
 /*
 Ideas:
@@ -193,12 +195,18 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     let mut finished = false;
     let mut event_pump = sdl_context.event_pump()?;
     let mut p = 1.0;
+    let mut last_error = f64::MAX;
 
     while !finished {
         target_image.update_palette(p);
         target_image.optimize();
 
-        println!("p: {:0.5}  Error: {}", p, target_image.error());
+        let error = target_image.error();
+
+        if (error - last_error).abs() > f64::EPSILON {
+            info!("p: {:0.5}  Error: {}", p, target_image.error());
+            last_error = error;
+        }
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
