@@ -15,10 +15,8 @@ pub mod util;
 
 /*
 Ideas:
-   - Initially quantize the source image to the SNES color space, since that can't be exceeded anyway.
    - Separate the image into N groups of tiles, and then optimize those sets of tiles.
    - Figure out how to combine the above with dithering.
-   - Potentially limit the degree of change, so the palette doesn't end up all over the place anytime the p value is still > 0.
    - Before output, sort the colors in the palette to group like colors.
 */
 
@@ -66,22 +64,25 @@ impl OptimizedImage {
                     let original_pixel = self
                         .original
                         .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
-                    let mut best_delta = f64::MAX;
-                    let mut best_color = 0;
 
-                    for color_index in 0..self.palette.sub_size {
-                        let color =
-                            self.palette.palette[palette * self.palette.sub_size + color_index];
-                        let delta = color_distance(original_pixel, &color);
+                    if original_pixel[3] > 0 {
+                        let mut best_delta = f64::MAX;
+                        let mut best_color = 0;
 
-                        if delta < best_delta {
-                            best_delta = delta;
-                            best_color = color_index;
+                        for color_index in 0..self.palette.sub_size {
+                            let color =
+                                &self.palette.palette[palette * self.palette.sub_size + color_index];
+                            let delta = color_distance(original_pixel, &color.as_rgba());
+
+                            if delta < best_delta {
+                                best_delta = delta;
+                                best_color = color_index;
+                            }
                         }
-                    }
 
-                    colors[y * 8 + x] = best_color;
-                    error += best_delta;
+                        colors[y * 8 + x] = best_color;
+                        error += best_delta;
+                    }
                 }
             }
 
@@ -123,14 +124,26 @@ impl OptimizedImage {
     pub fn update_palette(&mut self, p: f64) {
         let index = rand::thread_rng().gen_range(0, self.palette.palette.len());
         let current_error = self.error();
-        let current_value = self.palette.palette[index];
+        let current_value = self.palette.palette[index].clone();
 
-        let r = rand::thread_rng().gen_range(0, 32);
-        let g = rand::thread_rng().gen_range(0, 32);
-        let b = rand::thread_rng().gen_range(0, 32);
-        self.palette.palette[index] =
-            image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255]);
+        let channel = rand::thread_rng().gen_range(0, 3);
 
+        let delta: i8 = if current_value.data[channel] == 0 {
+            1
+        } else if current_value.data[channel] == 31 {
+            -1
+        } else {
+            match rand::thread_rng().gen_range(0, 2) {
+                0 => -1,
+                1 => 1,
+                _ => unreachable!(),
+            }
+        };
+
+        let mut new_value = current_value.clone();
+        new_value.data[channel] = (new_value.data[channel] as i8 + delta) as u8;
+
+        self.palette.palette[index] = new_value;
         self.optimize();
 
         if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
@@ -152,7 +165,7 @@ impl OptimizedImage {
             if pixel[3] == 0 {
                 image.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
             } else {
-                image.put_pixel(x, y, self.palette.palette[color_index]);
+                image.put_pixel(x, y, self.palette.palette[color_index].as_rgba());
             }
         }
 
@@ -160,8 +173,38 @@ impl OptimizedImage {
     }
 }
 
+#[derive(Clone)]
+struct SnesColor {
+    data: Vec<u8>,
+}
+
+impl SnesColor {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        SnesColor {
+            data: vec![r, g, b],
+        }
+    }
+
+    pub fn as_rgba(&self) -> image::Rgba<u8> {
+        image::Rgba([
+            self.data[0] * 8 + self.data[0] / 4,
+            self.data[1] * 8 + self.data[1] / 4,
+            self.data[2] * 8 + self.data[2] / 4,
+            255,
+        ])
+    }
+
+    pub fn as_sdl_rgb(&self) -> Color {
+        Color::RGB(
+            self.data[0] * 8 + self.data[0] / 4,
+            self.data[1] * 8 + self.data[1] / 4,
+            self.data[2] * 8 + self.data[2] / 4,
+        )
+    }
+}
+
 struct Palette {
-    palette: Vec<image::Rgba<u8>>,
+    palette: Vec<SnesColor>,
     sub_size: usize,
     sub_count: usize,
 }
@@ -169,7 +212,7 @@ struct Palette {
 impl Palette {
     pub fn new(sub_count: usize, sub_size: usize) -> Self {
         Palette {
-            palette: vec![image::Rgba([0, 0, 0, 0]); sub_count * sub_size],
+            palette: vec![SnesColor::new(0, 0, 0); sub_count * sub_size],
             sub_count,
             sub_size,
         }
@@ -180,7 +223,7 @@ impl Palette {
             let r = rand::thread_rng().gen_range(0, 32);
             let g = rand::thread_rng().gen_range(0, 32);
             let b = rand::thread_rng().gen_range(0, 32);
-            self.palette[i] = image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255])
+            self.palette[i] = SnesColor::new(r, g, b);
         }
     }
 
@@ -194,8 +237,8 @@ impl Palette {
             for color_index in 0..self.sub_size {
                 let x = base_x + (color_index + 1) * 8;
                 let y = base_y + palette_index * 8;
-                let color = self.palette[palette_index * self.sub_size + color_index];
-                canvas.set_draw_color(Color::RGB(color[0], color[1], color[2]));
+                let color = &self.palette[palette_index * self.sub_size + color_index];
+                canvas.set_draw_color(color.as_sdl_rgb());
                 canvas
                     .fill_rect(Rect::new(x as i32, y as i32, 8, 8))
                     .unwrap();
@@ -266,7 +309,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         }
 
         canvas.present();
-        p -= 0.0001;
+        p -= 0.00001;
 
         if p < 0.0 {
             p = 0.0;
