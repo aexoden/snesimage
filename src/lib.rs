@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::error::Error;
 
 use rand::Rng;
@@ -12,39 +11,36 @@ extern crate image;
 pub mod config;
 
 /*
- Ideas:
-    - Initially quantize the source image to the SNES color space, since that can't be exceeded anyway.
-    - Separate the image into N groups of tiles, and then optimize those sets of tiles.
-    - Figure out how to combine the above with dithering.
-    - If continuing with stochastic search, at least ensure all entries in palette map are touched routinely. Focus
-      on actual optimization rather than a completely random process.
-    - Potentially limit the degree of change, so the palette doesn't end up all over the place anytime the p value is still > 0.
- */
+Ideas:
+   - Initially quantize the source image to the SNES color space, since that can't be exceeded anyway.
+   - Separate the image into N groups of tiles, and then optimize those sets of tiles.
+   - Figure out how to combine the above with dithering.
+   - Potentially limit the degree of change, so the palette doesn't end up all over the place anytime the p value is still > 0.
+*/
 
 struct OptimizedImage {
     original: image::RgbaImage,
     tile_palettes: Vec<u8>,
     palette: Vec<image::Rgba<u8>>,
-    palette_map: HashMap<image::Rgba<u8>, Vec<u8>>,
+    palette_map: Vec<u8>,
     palette_size: usize,
     palette_count: usize,
 }
 
 fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
-    ((color1[0] as f64 - color2[0] as f64).powf(2.0) + (color1[1] as f64 - color2[1] as f64).powf(2.0) + (color1[2] as f64 - color2[2] as f64).powf(2.0)).sqrt()
+    ((color1[0] as f64 - color2[0] as f64).powf(2.0)
+        + (color1[1] as f64 - color2[1] as f64).powf(2.0)
+        + (color1[2] as f64 - color2[2] as f64).powf(2.0))
+    .sqrt()
 }
 
 impl OptimizedImage {
     pub fn new(source: &image::RgbaImage, palette_count: usize, palette_size: usize) -> Self {
-        let palette_map = source.enumerate_pixels().map(|(_, _, pixel)| {
-            (image::Rgba([pixel[0], pixel[1], pixel[2], pixel[3]]), vec![0; palette_count])
-        }).collect();
-
         OptimizedImage {
             original: source.clone(),
             tile_palettes: vec![0; 32 * 32],
             palette: vec![image::Rgba([0, 0, 0, 0]); palette_count * palette_size],
-            palette_map,
+            palette_map: vec![0; (source.width() * source.height()) as usize],
             palette_size,
             palette_count,
         }
@@ -58,32 +54,79 @@ impl OptimizedImage {
             self.palette[i] = image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255])
         }
 
-        for i in 0..self.tile_palettes.len() {
-            self.tile_palettes[i] = rand::thread_rng().gen_range(0, self.palette_count) as u8;
+        self.optimize();
+    }
+
+    pub fn optimize(&mut self) {
+        for tile_x in 0..(self.original.width() / 8) {
+            for tile_y in 0..(self.original.height() / 8) {
+                self.optimize_tile(tile_x as usize * 8, tile_y as usize * 8);
+            }
+        }
+    }
+
+    fn optimize_tile(&mut self, tile_x: usize, tile_y: usize) {
+        let mut best_error = f64::MAX;
+        let mut best_colors = vec![0; 8 * 8];
+
+        for palette in 0..self.palette_count {
+            let mut error = 0.0;
+            let mut colors = vec![0; 8 * 8];
+
+            for x in 0..8 {
+                for y in 0..8 {
+                    let original_pixel = self
+                        .original
+                        .get_pixel((tile_x + x) as u32, (tile_y + y) as u32);
+                    let mut best_delta = f64::MAX;
+                    let mut best_color = 0;
+
+                    for color_index in 0..self.palette_size {
+                        let color = self.palette[palette * self.palette_size + color_index];
+                        let delta = color_distance(original_pixel, &color);
+
+                        if delta < best_delta {
+                            best_delta = delta;
+                            best_color = color_index;
+                        }
+                    }
+
+                    colors[y * 8 + x] = best_color;
+                    error += best_delta;
+                }
+            }
+
+            if error < best_error {
+                best_error = error;
+                best_colors = colors;
+            }
         }
 
-        self.palette_map = self.palette_map.iter().map(|(key, _)| {
-            let palettes = (0..self.palette_count).map(|_| {
-                rand::thread_rng().gen_range(0, self.palette_size) as u8
-            }).collect();
-
-            (*key, palettes)
-        }).collect();
+        for x in 0..8 {
+            for y in 0..8 {
+                self.palette_map[(tile_y + y) * self.original.width() as usize + (tile_x + x)] =
+                    best_colors[y * 8 + x] as u8;
+            }
+        }
     }
 
     pub fn error(&self) -> f64 {
-        let mut error = 0.0;
         let rgba = self.as_rgbaimage();
 
-        rgba.enumerate_pixels().map(|(x, y, pixel)| {
-            let other = self.original.get_pixel(x, y);
+        rgba.enumerate_pixels()
+            .map(|(x, y, pixel)| {
+                let other = self.original.get_pixel(x, y);
 
-            if other[3] == 0 {
-                0.0
-            } else {
-                ((pixel[0] as f64 - other[0] as f64).powf(2.0) + (pixel[1] as f64 - other[1] as f64).powf(2.0) + (pixel[2] as f64 - other[2] as f64).powf(2.0)).sqrt()
-            }
-        }).sum()
+                if other[3] == 0 {
+                    0.0
+                } else {
+                    ((pixel[0] as f64 - other[0] as f64).powf(2.0)
+                        + (pixel[1] as f64 - other[1] as f64).powf(2.0)
+                        + (pixel[2] as f64 - other[2] as f64).powf(2.0))
+                    .sqrt()
+                }
+            })
+            .sum()
     }
 
     pub fn update_palette(&mut self, p: f64) {
@@ -96,37 +139,11 @@ impl OptimizedImage {
         let b = rand::thread_rng().gen_range(0, 32);
         self.palette[index] = image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255]);
 
+        self.optimize();
+
         if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
             self.palette[index] = current_value;
-        }
-    }
-
-    pub fn update_tile_palettes(&mut self, p: f64) {
-        let index = rand::thread_rng().gen_range(0, self.tile_palettes.len());
-        let current_error = self.error();
-        let current_value = self.tile_palettes[index];
-
-        self.tile_palettes[index] = rand::thread_rng().gen_range(0, self.palette_count) as u8;
-
-        if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
-            self.tile_palettes[index] = current_value;
-        }
-    }
-
-    pub fn update_palette_map(&mut self, p: f64) {
-        let x = rand::thread_rng().gen_range(0, self.original.width());
-        let y = rand::thread_rng().gen_range(0, self.original.height());
-        let index = rand::thread_rng().gen_range(0, self.palette_count);
-        let key = self.original.get_pixel(x, y);
-        let current_value = self.palette_map[key][index];
-
-        let current_error = color_distance(key, &self.palette[index as usize * self.palette_size + current_value as usize]);
-
-        let new_value = rand::thread_rng().gen_range(0, self.palette_size) as u8;
-        let new_error = color_distance(key, &self.palette[index as usize * self.palette_size + new_value as usize]);
-
-        if rand::thread_rng().gen_range(0.0, 1.0) < p || new_error < current_error {
-            self.palette_map.get_mut(key).unwrap()[index] = new_value;
+            self.optimize();
         }
     }
 
@@ -137,7 +154,8 @@ impl OptimizedImage {
             let tile_x = x / 8;
             let tile_y = y / 8;
             let palette_index = self.tile_palettes[(tile_y * 32 + tile_x) as usize];
-            let color_index = palette_index as usize * self.palette_size + self.palette_map[&image::Rgba([pixel[0], pixel[1], pixel[2], pixel[3]])][palette_index as usize] as usize;
+            let color_index = palette_index as usize * self.palette_size
+                + self.palette_map[(y * self.original.width() + x) as usize] as usize;
 
             if pixel[3] == 0 {
                 image.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
@@ -174,17 +192,11 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
     let mut finished = false;
     let mut event_pump = sdl_context.event_pump()?;
-    let mut cycle = 0;
     let mut p = 1.0;
 
     while !finished {
-        if cycle % 256 == 0 {
-            target_image.update_palette(p);
-        }
-        if cycle % 16 == 0 {
-            target_image.update_tile_palettes(p);
-        }
-        target_image.update_palette_map(p);
+        target_image.update_palette(p);
+        target_image.optimize();
 
         println!("p: {:0.5}  Error: {}", p, target_image.error());
 
@@ -207,7 +219,6 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         }
 
         canvas.present();
-        cycle += 1;
         p -= 0.0001;
 
         if p < 0.0 {
