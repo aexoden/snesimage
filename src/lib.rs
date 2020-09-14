@@ -6,6 +6,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
+use sdl2::rect::Rect;
 
 extern crate image;
 
@@ -23,17 +24,8 @@ Ideas:
 struct OptimizedImage {
     original: image::RgbaImage,
     tile_palettes: Vec<u8>,
-    palette: Vec<image::Rgba<u8>>,
+    palette: Palette,
     palette_map: Vec<u8>,
-    palette_size: usize,
-    palette_count: usize,
-}
-
-fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
-    ((color1[0] as f64 - color2[0] as f64).powf(2.0)
-        + (color1[1] as f64 - color2[1] as f64).powf(2.0)
-        + (color1[2] as f64 - color2[2] as f64).powf(2.0))
-    .sqrt()
 }
 
 impl OptimizedImage {
@@ -41,21 +33,13 @@ impl OptimizedImage {
         OptimizedImage {
             original: source.clone(),
             tile_palettes: vec![0; 32 * 32],
-            palette: vec![image::Rgba([0, 0, 0, 0]); palette_count * palette_size],
+            palette: Palette::new(palette_count, palette_size),
             palette_map: vec![0; (source.width() * source.height()) as usize],
-            palette_size,
-            palette_count,
         }
     }
 
     pub fn randomize(&mut self) {
-        for i in 0..self.palette.len() {
-            let r = rand::thread_rng().gen_range(0, 32);
-            let g = rand::thread_rng().gen_range(0, 32);
-            let b = rand::thread_rng().gen_range(0, 32);
-            self.palette[i] = image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255])
-        }
-
+        self.palette.randomize();
         self.optimize();
     }
 
@@ -71,7 +55,7 @@ impl OptimizedImage {
         let mut best_error = f64::MAX;
         let mut best_colors = vec![0; 8 * 8];
 
-        for palette in 0..self.palette_count {
+        for palette in 0..self.palette.sub_count {
             let mut error = 0.0;
             let mut colors = vec![0; 8 * 8];
 
@@ -83,8 +67,9 @@ impl OptimizedImage {
                     let mut best_delta = f64::MAX;
                     let mut best_color = 0;
 
-                    for color_index in 0..self.palette_size {
-                        let color = self.palette[palette * self.palette_size + color_index];
+                    for color_index in 0..self.palette.sub_size {
+                        let color =
+                            self.palette.palette[palette * self.palette.sub_size + color_index];
                         let delta = color_distance(original_pixel, &color);
 
                         if delta < best_delta {
@@ -132,19 +117,20 @@ impl OptimizedImage {
     }
 
     pub fn update_palette(&mut self, p: f64) {
-        let index = rand::thread_rng().gen_range(0, self.palette.len());
+        let index = rand::thread_rng().gen_range(0, self.palette.palette.len());
         let current_error = self.error();
-        let current_value = self.palette[index];
+        let current_value = self.palette.palette[index];
 
         let r = rand::thread_rng().gen_range(0, 32);
         let g = rand::thread_rng().gen_range(0, 32);
         let b = rand::thread_rng().gen_range(0, 32);
-        self.palette[index] = image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255]);
+        self.palette.palette[index] =
+            image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255]);
 
         self.optimize();
 
         if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
-            self.palette[index] = current_value;
+            self.palette.palette[index] = current_value;
             self.optimize();
         }
     }
@@ -156,17 +142,61 @@ impl OptimizedImage {
             let tile_x = x / 8;
             let tile_y = y / 8;
             let palette_index = self.tile_palettes[(tile_y * 32 + tile_x) as usize];
-            let color_index = palette_index as usize * self.palette_size
+            let color_index = palette_index as usize * self.palette.sub_size
                 + self.palette_map[(y * self.original.width() + x) as usize] as usize;
 
             if pixel[3] == 0 {
                 image.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
             } else {
-                image.put_pixel(x, y, self.palette[color_index]);
+                image.put_pixel(x, y, self.palette.palette[color_index]);
             }
         }
 
         image
+    }
+}
+
+struct Palette {
+    palette: Vec<image::Rgba<u8>>,
+    sub_size: usize,
+    sub_count: usize,
+}
+
+impl Palette {
+    pub fn new(sub_count: usize, sub_size: usize) -> Self {
+        Palette {
+            palette: vec![image::Rgba([0, 0, 0, 0]); sub_count * sub_size],
+            sub_count,
+            sub_size,
+        }
+    }
+
+    pub fn randomize(&mut self) {
+        for i in 0..self.palette.len() {
+            let r = rand::thread_rng().gen_range(0, 32);
+            let g = rand::thread_rng().gen_range(0, 32);
+            let b = rand::thread_rng().gen_range(0, 32);
+            self.palette[i] = image::Rgba([r * 8 + r / 4, g * 8 + g / 4, b * 8 + b / 4, 255])
+        }
+    }
+
+    pub fn render(
+        &self,
+        canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+        base_x: usize,
+        base_y: usize,
+    ) {
+        for palette_index in 0..self.sub_count {
+            for color_index in 0..self.sub_size {
+                let x = base_x + (color_index + 1) * 8;
+                let y = base_y + palette_index * 8;
+                let color = self.palette[palette_index * self.sub_size + color_index];
+                canvas.set_draw_color(Color::RGB(color[0], color[1], color[2]));
+                canvas
+                    .fill_rect(Rect::new(x as i32, y as i32, 8, 8))
+                    .unwrap();
+            }
+        }
     }
 }
 
@@ -182,7 +212,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     let video_subsystem = sdl_context.video()?;
 
     let window = video_subsystem
-        .window("snesimage", 512, 256)
+        .window("snesimage", 640, 256)
         .position_centered()
         .build()?;
 
@@ -212,6 +242,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         canvas.clear();
         render_image(&source_image, &mut canvas, 0, 0);
         render_image(&target_image.as_rgbaimage(), &mut canvas, 256, 0);
+        target_image.palette.render(&mut canvas, 512, 0);
 
         for event in event_pump.poll_iter() {
             match event {
@@ -252,4 +283,11 @@ fn render_image(
             ))
             .unwrap();
     }
+}
+
+fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
+    ((color1[0] as f64 - color2[0] as f64).powf(2.0)
+        + (color1[1] as f64 - color2[1] as f64).powf(2.0)
+        + (color1[2] as f64 - color2[2] as f64).powf(2.0))
+    .sqrt()
 }
