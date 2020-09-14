@@ -5,6 +5,15 @@ use clap::Clap;
 pub struct Config {
     // Filename for the image to optimize.
     pub source_filename: String,
+
     // Filename for the generated output.
     //pub target_filename: String,
+
+    // Number of separate subpalettes to use.
+    #[clap(short = "c", long, default_value = "1")]
+    pub subpalette_count: usize,
+
+    // Number of colors within each subpalette (not including the transparent color).
+    #[clap(short = "s", long, default_value = "7")]
+    pub subpalette_size: usize,
 }

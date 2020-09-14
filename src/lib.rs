@@ -209,7 +209,11 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     println!("Source Image: {}", config.source_filename);
 
     let source_image = image::open(config.source_filename)?.to_rgba();
-    let mut target_image = OptimizedImage::new(&source_image, 3, 15);
+    let mut target_image = OptimizedImage::new(
+        &source_image,
+        config.subpalette_count,
+        config.subpalette_size,
+    );
     target_image.randomize();
 
     let sdl_context = sdl2::init()?;
