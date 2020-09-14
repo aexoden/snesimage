@@ -19,6 +19,7 @@ Ideas:
    - Separate the image into N groups of tiles, and then optimize those sets of tiles.
    - Figure out how to combine the above with dithering.
    - Potentially limit the degree of change, so the palette doesn't end up all over the place anytime the p value is still > 0.
+   - Before output, sort the colors in the palette to group like colors.
 */
 
 struct OptimizedImage {
@@ -46,13 +47,14 @@ impl OptimizedImage {
     pub fn optimize(&mut self) {
         for tile_x in 0..(self.original.width() / 8) {
             for tile_y in 0..(self.original.height() / 8) {
-                self.optimize_tile(tile_x as usize * 8, tile_y as usize * 8);
+                self.optimize_tile(tile_x as usize, tile_y as usize);
             }
         }
     }
 
     fn optimize_tile(&mut self, tile_x: usize, tile_y: usize) {
         let mut best_error = f64::MAX;
+        let mut best_palette = 0;
         let mut best_colors = vec![0; 8 * 8];
 
         for palette in 0..self.palette.sub_count {
@@ -63,7 +65,7 @@ impl OptimizedImage {
                 for y in 0..8 {
                     let original_pixel = self
                         .original
-                        .get_pixel((tile_x + x) as u32, (tile_y + y) as u32);
+                        .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
                     let mut best_delta = f64::MAX;
                     let mut best_color = 0;
 
@@ -86,12 +88,17 @@ impl OptimizedImage {
             if error < best_error {
                 best_error = error;
                 best_colors = colors;
+                best_palette = palette;
             }
         }
 
+        self.tile_palettes[tile_y * (self.original.width() / 8) as usize + tile_x] =
+            best_palette as u8;
+
         for x in 0..8 {
             for y in 0..8 {
-                self.palette_map[(tile_y + y) * self.original.width() as usize + (tile_x + x)] =
+                self.palette_map
+                    [(tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x)] =
                     best_colors[y * 8 + x] as u8;
             }
         }
@@ -107,10 +114,7 @@ impl OptimizedImage {
                 if other[3] == 0 {
                     0.0
                 } else {
-                    ((pixel[0] as f64 - other[0] as f64).powf(2.0)
-                        + (pixel[1] as f64 - other[1] as f64).powf(2.0)
-                        + (pixel[2] as f64 - other[2] as f64).powf(2.0))
-                    .sqrt()
+                    color_distance(pixel, other)
                 }
             })
             .sum()
