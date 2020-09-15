@@ -121,6 +121,34 @@ impl OptimizedImage {
             .sum()
     }
 
+    pub fn randomize_least_used_color(&mut self) {
+        let mut counts = vec![0; self.palette.palette.len()];
+
+        for x in 0..self.original.width() {
+            for y in 0..self.original.height() {
+                let tile_x = x / 8;
+                let tile_y = y / 8;
+
+                let index = self.tile_palettes[(tile_y * (self.original.width() / 8) + tile_x) as usize] + self.palette_map[(y * self.original.width() + x) as usize];
+                counts[index as usize] += 1;
+            }
+        }
+
+        let mut least_index = 0;
+        let mut least_count = u32::MAX;
+
+        for (index, count) in counts.iter().enumerate() {
+            if *count < least_count {
+                least_index = index;
+                least_count = *count;
+            }
+        }
+
+        if least_count < 32 {
+            self.palette.randomize_single(least_index);
+        }
+    }
+
     pub fn update_palette(&mut self, p: f64) {
         let index = rand::thread_rng().gen_range(0, self.palette.palette.len());
         let current_error = self.error();
@@ -144,6 +172,11 @@ impl OptimizedImage {
         new_value.data[channel] = (new_value.data[channel] as i8 + delta) as u8;
 
         self.palette.palette[index] = new_value;
+
+        if rand::thread_rng().gen_range(0.0, 1.0) < 0.01 {
+            self.randomize_least_used_color();
+        }
+
         self.optimize();
 
         if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
@@ -220,11 +253,15 @@ impl Palette {
 
     pub fn randomize(&mut self) {
         for i in 0..self.palette.len() {
-            let r = rand::thread_rng().gen_range(0, 32);
-            let g = rand::thread_rng().gen_range(0, 32);
-            let b = rand::thread_rng().gen_range(0, 32);
-            self.palette[i] = SnesColor::new(r, g, b);
+            self.randomize_single(i);
         }
+    }
+
+    pub fn randomize_single(&mut self, index: usize) {
+        let r = rand::thread_rng().gen_range(0, 32);
+        let g = rand::thread_rng().gen_range(0, 32);
+        let b = rand::thread_rng().gen_range(0, 32);
+        self.palette[index] = SnesColor::new(r, g, b);
     }
 
     pub fn render(
