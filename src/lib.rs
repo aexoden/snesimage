@@ -17,7 +17,6 @@ pub mod util;
 
 /*
 Ideas:
-   - Separate the image into N groups of tiles, and then optimize those sets of tiles.
    - Figure out how to combine the above with dithering.
    - Before output, sort the colors in the palette to group like colors.
 */
@@ -48,8 +47,8 @@ impl OptimizedImage {
     }
 
     pub fn initialize_tiles(&mut self) {
-        let mut means: Vec<Euclid<[f64; 3]>> = vec!();
-        let mut map: Vec<usize> = vec!();
+        let mut means: Vec<Euclid<[f64; 3]>> = vec![];
+        let mut map: Vec<usize> = vec![];
 
         for tile_x in 0..self.width_in_tiles() {
             for tile_y in 0..self.height_in_tiles() {
@@ -58,7 +57,9 @@ impl OptimizedImage {
 
                 for x in 0..8 {
                     for y in 0..8 {
-                        let color = self.original.get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+                        let color = self
+                            .original
+                            .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
                         for i in 0..sum.len() {
                             sum[i] += color[i] as usize;
                         }
@@ -78,7 +79,7 @@ impl OptimizedImage {
         }
 
         let kmeans = Kmeans::new(&means, self.palette.sub_count);
-        info!("Finished assining initial tiles");
+        info!("Finished assigning initial tiles");
 
         for (index, (mean, tiles)) in kmeans.clusters().iter().enumerate() {
             for tile_index in tiles {
@@ -91,10 +92,56 @@ impl OptimizedImage {
                 (mean.0[2] / 8.0).round() as u8,
             );
 
-            info!("{} tiles using color: {}, {}, {}", tiles.len(), color.data[0], color.data[1], color.data[2]);
+            info!(
+                "{} tiles using color: {}, {}, {}",
+                tiles.len(),
+                color.data[0],
+                color.data[1],
+                color.data[2]
+            );
 
             for i in 0..self.palette.sub_size {
                 self.palette.palette[index * self.palette.sub_size + i] = color.clone();
+            }
+        }
+    }
+
+    pub fn recalculate_palettes(&mut self) {
+        let mut sums = vec![vec![0; 3]; self.palette.sub_count];
+        let mut counts = vec![0; self.palette.sub_count];
+
+        for x in 0..self.original.width() {
+            for y in 0..self.original.height() {
+                let color = self.original.get_pixel(x, y);
+
+                if color[3] > 0 {
+                    let tile_x = x / 8;
+                    let tile_y = y / 8;
+                    let tile_index = tile_y as usize * self.width_in_tiles() + tile_x as usize;
+                    let palette = self.tile_palettes[tile_index];
+
+                    for i in 0..sums[0].len() {
+                        sums[palette as usize][i] += color[i] as usize;
+                    }
+
+                    counts[palette as usize] += 1;
+                }
+            }
+        }
+
+        for (palette, sum) in sums.iter().enumerate() {
+            let color = if counts[palette] > 0 {
+                SnesColor::new(
+                    ((sum[0] / counts[palette]) as f64 / 8.0).round() as u8,
+                    ((sum[1] / counts[palette]) as f64 / 8.0).round() as u8,
+                    ((sum[2] / counts[palette]) as f64 / 8.0).round() as u8,
+                )
+            } else {
+                SnesColor::new(0, 0, 0)
+            };
+
+            for i in 0..self.palette.sub_size {
+                self.palette.palette[palette * self.palette.sub_size + i] = color.clone();
             }
         }
     }
@@ -123,8 +170,8 @@ impl OptimizedImage {
                     let mut best_color = 0;
 
                     for color_index in 0..self.palette.sub_size {
-                        let color =
-                            &self.palette.palette[palette as usize * self.palette.sub_size + color_index];
+                        let color = &self.palette.palette
+                            [palette as usize * self.palette.sub_size + color_index];
                         let delta = color_distance(original_pixel, &color.as_rgba());
 
                         if delta < best_delta {
@@ -171,7 +218,11 @@ impl OptimizedImage {
                 let tile_x = x / 8;
                 let tile_y = y / 8;
 
-                let index = self.tile_palettes[tile_y as usize * self.width_in_tiles() + tile_x as usize] as usize * self.palette.sub_size + self.palette_map[(y * self.original.width() + x) as usize] as usize;
+                let index = self.tile_palettes
+                    [tile_y as usize * self.width_in_tiles() + tile_x as usize]
+                    as usize
+                    * self.palette.sub_size
+                    + self.palette_map[(y * self.original.width() + x) as usize] as usize;
                 counts[index as usize] += 1;
             }
         }
@@ -313,6 +364,7 @@ impl Palette {
     }
 }
 
+#[derive(PartialEq)]
 enum Phase {
     Selection,
     Optimization,
@@ -365,8 +417,14 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
-        render_image(&source_image, &mut canvas, 0, 0);
-        render_image(&target_image.as_rgbaimage(), &mut canvas, 256, 0);
+        render_image(&source_image, &mut canvas, 0, 0, phase == Phase::Selection);
+        render_image(
+            &target_image.as_rgbaimage(),
+            &mut canvas,
+            256,
+            0,
+            phase == Phase::Selection,
+        );
         target_image.palette.render(&mut canvas, 512, 0);
 
         canvas.set_draw_color(Color::RGB(0, 128, 0));
@@ -374,12 +432,28 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::MouseButtonUp { x, y, mouse_btn: MouseButton::Left, .. } => {
+                Event::MouseButtonUp {
+                    x,
+                    y,
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
                     if x >= 520 && y >= 232 && x < (520 + 52) && y < (232 + 16) {
                         info!("Beginning optimization");
                         phase = Phase::Optimization;
                     }
-                },
+
+                    if x < 512 {
+                        let tile_x = x % 256 / 8;
+                        let tile_y = y / 8;
+                        let index =
+                            tile_y as usize * target_image.width_in_tiles() + tile_x as usize;
+
+                        target_image.tile_palettes[index] =
+                            (target_image.tile_palettes[index] + 1) % config.subpalette_count as u8;
+                        target_image.recalculate_palettes();
+                    }
+                }
                 Event::Quit { .. }
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
@@ -407,9 +481,19 @@ fn render_image(
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
     base_x: usize,
     base_y: usize,
+    grid: bool,
 ) {
     for (x, y, pixel) in image.enumerate_pixels() {
-        canvas.set_draw_color(Color::RGB(pixel[0], pixel[1], pixel[2]));
+        if !grid || (x % 8 > 0 && y % 8 > 0) {
+            canvas.set_draw_color(Color::RGB(pixel[0], pixel[1], pixel[2]));
+        } else {
+            canvas.set_draw_color(Color::RGB(
+                pixel[0] / 5 * 4,
+                pixel[1] / 5 * 4,
+                pixel[2] / 5 * 4,
+            ));
+        }
+
         canvas
             .draw_point(Point::new(
                 x as i32 + base_x as i32,
@@ -425,5 +509,6 @@ fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
     let g = color1[1] as f64 - color2[1] as f64;
     let b = color1[2] as f64 - color2[2] as f64;
 
-    ((((512.0 + red_mean) * r * r) / 256.0) + 4.0 * g * g + (((767.0 - red_mean) * b * b) / 256.0)).sqrt()
+    ((((512.0 + red_mean) * r * r) / 256.0) + 4.0 * g * g + (((767.0 - red_mean) * b * b) / 256.0))
+        .sqrt()
 }
