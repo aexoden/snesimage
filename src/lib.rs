@@ -18,7 +18,6 @@ Ideas:
    - Separate the image into N groups of tiles, and then optimize those sets of tiles.
    - Figure out how to combine the above with dithering.
    - Before output, sort the colors in the palette to group like colors.
-   - Compare colors in LAB rather than RGB.
 */
 
 struct OptimizedImage {
@@ -375,8 +374,10 @@ fn render_image(
 }
 
 fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
-    ((color1[0] as f64 - color2[0] as f64).powf(2.0)
-        + (color1[1] as f64 - color2[1] as f64).powf(2.0)
-        + (color1[2] as f64 - color2[2] as f64).powf(2.0))
-    .sqrt()
+    let red_mean = (color1[0] as f64 + color2[0] as f64) / 2.0;
+    let r = color1[0] as f64 - color2[0] as f64;
+    let g = color1[1] as f64 - color2[1] as f64;
+    let b = color1[2] as f64 - color2[2] as f64;
+
+    ((((512.0 + red_mean) * r * r) / 256.0) + 4.0 * g * g + (((767.0 - red_mean) * b * b) / 256.0)).sqrt()
 }
