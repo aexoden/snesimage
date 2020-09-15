@@ -19,6 +19,7 @@ pub mod util;
 Ideas:
    - Figure out how to combine the above with dithering.
    - Before output, sort the colors in the palette to group like colors.
+   - Do k-means clustering in a perceptually uniform color space.
 */
 
 struct OptimizedImage {
@@ -100,9 +101,48 @@ impl OptimizedImage {
                 color.data[2]
             );
 
-            for i in 0..self.palette.sub_size {
-                self.palette.palette[index * self.palette.sub_size + i] = color.clone();
+            self.recalculate_palette(index);
+        }
+
+        self.optimize();
+    }
+
+    fn recalculate_palette(&mut self, palette: usize) {
+        let mut pixels: Vec<Euclid<[f64; 3]>> = vec![];
+
+        for (tile, tile_palette) in self.tile_palettes.iter().enumerate() {
+            if *tile_palette as usize == palette {
+                let tile_x = tile % self.width_in_tiles();
+                let tile_y = tile / self.width_in_tiles();
+
+                for x in 0..8 {
+                    for y in 0..8 {
+                        let color = self
+                            .original
+                            .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+
+                        if color[3] > 0 {
+                            pixels.push(Euclid([
+                                color[0] as f64,
+                                color[1] as f64,
+                                color[2] as f64,
+                            ]));
+                        }
+                    }
+                }
             }
+        }
+
+        let kmeans = Kmeans::new(&pixels, self.palette.sub_size);
+
+        for (index, (value, _)) in kmeans.clusters().iter().enumerate() {
+            let color = SnesColor::new(
+                (value.0[0] / 8.0).round() as u8,
+                (value.0[1] / 8.0).round() as u8,
+                (value.0[2] / 8.0).round() as u8,
+            );
+
+            self.palette.palette[palette * self.palette.sub_size + index] = color;
         }
     }
 
