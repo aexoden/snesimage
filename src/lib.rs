@@ -18,6 +18,7 @@ Ideas:
    - Separate the image into N groups of tiles, and then optimize those sets of tiles.
    - Figure out how to combine the above with dithering.
    - Before output, sort the colors in the palette to group like colors.
+   - Compare colors in LAB rather than RGB.
 */
 
 struct OptimizedImage {
@@ -346,7 +347,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         }
 
         canvas.present();
-        p -= 0.00001;
+        p -= config.p_delta;
 
         if p < 0.0 {
             p = 0.0;
