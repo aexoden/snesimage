@@ -5,6 +5,7 @@ use log::info;
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
@@ -77,6 +78,7 @@ impl OptimizedImage {
         }
 
         let kmeans = Kmeans::new(&means, self.palette.sub_count);
+        info!("Finished assining initial tiles");
 
         for (index, (mean, tiles)) in kmeans.clusters().iter().enumerate() {
             for tile_index in tiles {
@@ -88,6 +90,8 @@ impl OptimizedImage {
                 (mean.0[1] / 8.0).round() as u8,
                 (mean.0[2] / 8.0).round() as u8,
             );
+
+            info!("{} tiles using color: {}, {}, {}", tiles.len(), color.data[0], color.data[1], color.data[2]);
 
             for i in 0..self.palette.sub_size {
                 self.palette.palette[index * self.palette.sub_size + i] = color.clone();
@@ -309,9 +313,13 @@ impl Palette {
     }
 }
 
+enum Phase {
+    Selection,
+    Optimization,
+}
+
 pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
-    println!("SNES Image Optimizer");
-    println!("Source Image: {}", config.source_filename);
+    info!("Using source image: {}", config.source_filename);
 
     let source_image = image::open(config.source_filename)?.to_rgba();
     let mut target_image = OptimizedImage::new(
@@ -337,19 +345,22 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     canvas.present();
 
     let mut finished = false;
+    let mut phase = Phase::Selection;
     let mut event_pump = sdl_context.event_pump()?;
     let mut p = 1.0;
     let mut last_error = f64::MAX;
 
     while !finished {
-        target_image.update_palette(p);
-        target_image.optimize();
+        if let Phase::Optimization = phase {
+            target_image.update_palette(p);
+            target_image.optimize();
 
-        let error = target_image.error();
+            let error = target_image.error();
 
-        if (error - last_error).abs() > f64::EPSILON {
-            info!("p: {:0.5}  Error: {}", p, target_image.error());
-            last_error = error;
+            if (error - last_error).abs() > f64::EPSILON {
+                info!("p: {:0.5}  Error: {}", p, target_image.error());
+                last_error = error;
+            }
         }
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
@@ -358,8 +369,17 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         render_image(&target_image.as_rgbaimage(), &mut canvas, 256, 0);
         target_image.palette.render(&mut canvas, 512, 0);
 
+        canvas.set_draw_color(Color::RGB(0, 128, 0));
+        canvas.fill_rect(Rect::new(520, 232, 52, 16))?;
+
         for event in event_pump.poll_iter() {
             match event {
+                Event::MouseButtonUp { x, y, mouse_btn: MouseButton::Left, .. } => {
+                    if x >= 520 && y >= 232 && x < (520 + 52) && y < (232 + 16) {
+                        info!("Beginning optimization");
+                        phase = Phase::Optimization;
+                    }
+                },
                 Event::Quit { .. }
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
