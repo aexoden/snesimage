@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use cogset::{Euclid, Kmeans};
 use log::info;
 use rand::Rng;
 use sdl2::event::Event;
@@ -37,70 +38,107 @@ impl OptimizedImage {
         }
     }
 
-    pub fn randomize(&mut self) {
-        self.palette.randomize();
-        self.optimize();
+    fn width_in_tiles(&self) -> usize {
+        (self.original.width() / 8) as usize
+    }
+
+    fn height_in_tiles(&self) -> usize {
+        (self.original.height() / 8) as usize
+    }
+
+    pub fn initialize_tiles(&mut self) {
+        let mut means: Vec<Euclid<[f64; 3]>> = vec!();
+        let mut map: Vec<usize> = vec!();
+
+        for tile_x in 0..self.width_in_tiles() {
+            for tile_y in 0..self.height_in_tiles() {
+                let mut sum = vec![0; 3];
+                let index = tile_y * self.width_in_tiles() + tile_x;
+
+                for x in 0..8 {
+                    for y in 0..8 {
+                        let color = self.original.get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+                        for i in 0..sum.len() {
+                            sum[i] += color[i] as usize;
+                        }
+                    }
+                }
+
+                if sum[0] + sum[1] + sum[2] > 0 {
+                    means.push(Euclid([
+                        sum[0] as f64 / 64.0,
+                        sum[1] as f64 / 64.0,
+                        sum[2] as f64 / 64.0,
+                    ]));
+
+                    map.push(index);
+                }
+            }
+        }
+
+        let kmeans = Kmeans::new(&means, self.palette.sub_count);
+
+        for (index, (mean, tiles)) in kmeans.clusters().iter().enumerate() {
+            for tile_index in tiles {
+                self.tile_palettes[map[*tile_index]] = index as u8;
+            }
+
+            let color = SnesColor::new(
+                (mean.0[0] / 8.0).round() as u8,
+                (mean.0[1] / 8.0).round() as u8,
+                (mean.0[2] / 8.0).round() as u8,
+            );
+
+            for i in 0..self.palette.sub_size {
+                self.palette.palette[index * self.palette.sub_size + i] = color.clone();
+            }
+        }
     }
 
     pub fn optimize(&mut self) {
-        for tile_x in 0..(self.original.width() / 8) {
-            for tile_y in 0..(self.original.height() / 8) {
+        for tile_x in 0..self.width_in_tiles() {
+            for tile_y in 0..self.height_in_tiles() {
                 self.optimize_tile(tile_x as usize, tile_y as usize);
             }
         }
     }
 
     fn optimize_tile(&mut self, tile_x: usize, tile_y: usize) {
-        let mut best_error = f64::MAX;
-        let mut best_palette = 0;
-        let mut best_colors = vec![0; 8 * 8];
+        let palette = self.tile_palettes[tile_y * self.width_in_tiles() + tile_x];
 
-        for palette in 0..self.palette.sub_count {
-            let mut error = 0.0;
-            let mut colors = vec![0; 8 * 8];
+        let mut colors = vec![0; 8 * 8];
 
-            for x in 0..8 {
-                for y in 0..8 {
-                    let original_pixel = self
-                        .original
-                        .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+        for x in 0..8 {
+            for y in 0..8 {
+                let original_pixel = self
+                    .original
+                    .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
 
-                    if original_pixel[3] > 0 {
-                        let mut best_delta = f64::MAX;
-                        let mut best_color = 0;
+                if original_pixel[3] > 0 {
+                    let mut best_delta = f64::MAX;
+                    let mut best_color = 0;
 
-                        for color_index in 0..self.palette.sub_size {
-                            let color =
-                                &self.palette.palette[palette * self.palette.sub_size + color_index];
-                            let delta = color_distance(original_pixel, &color.as_rgba());
+                    for color_index in 0..self.palette.sub_size {
+                        let color =
+                            &self.palette.palette[palette as usize * self.palette.sub_size + color_index];
+                        let delta = color_distance(original_pixel, &color.as_rgba());
 
-                            if delta < best_delta {
-                                best_delta = delta;
-                                best_color = color_index;
-                            }
+                        if delta < best_delta {
+                            best_delta = delta;
+                            best_color = color_index;
                         }
-
-                        colors[y * 8 + x] = best_color;
-                        error += best_delta;
                     }
+
+                    colors[y * 8 + x] = best_color;
                 }
             }
-
-            if error < best_error {
-                best_error = error;
-                best_colors = colors;
-                best_palette = palette;
-            }
         }
-
-        self.tile_palettes[tile_y * (self.original.width() / 8) as usize + tile_x] =
-            best_palette as u8;
 
         for x in 0..8 {
             for y in 0..8 {
                 self.palette_map
                     [(tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x)] =
-                    best_colors[y * 8 + x] as u8;
+                    colors[y * 8 + x] as u8;
             }
         }
     }
@@ -129,7 +167,7 @@ impl OptimizedImage {
                 let tile_x = x / 8;
                 let tile_y = y / 8;
 
-                let index = self.tile_palettes[(tile_y * (self.original.width() / 8) + tile_x) as usize] + self.palette_map[(y * self.original.width() + x) as usize];
+                let index = self.tile_palettes[tile_y as usize * self.width_in_tiles() + tile_x as usize] as usize * self.palette.sub_size + self.palette_map[(y * self.original.width() + x) as usize] as usize;
                 counts[index as usize] += 1;
             }
         }
@@ -172,7 +210,7 @@ impl OptimizedImage {
             self.optimize();
         }
 
-        if rand::thread_rng().gen_range(0.0, 1.0) < 0.01 {
+        if p < 0.000001 && rand::thread_rng().gen_range(0.0, 1.0) < 0.001 {
             self.randomize_unused_colors();
             self.optimize();
         }
@@ -244,12 +282,6 @@ impl Palette {
         }
     }
 
-    pub fn randomize(&mut self) {
-        for i in 0..self.palette.len() {
-            self.randomize_single(i);
-        }
-    }
-
     pub fn randomize_single(&mut self, index: usize) {
         let r = rand::thread_rng().gen_range(0, 32);
         let g = rand::thread_rng().gen_range(0, 32);
@@ -287,7 +319,8 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         config.subpalette_count,
         config.subpalette_size,
     );
-    target_image.randomize();
+
+    target_image.initialize_tiles();
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
