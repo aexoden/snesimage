@@ -121,7 +121,7 @@ impl OptimizedImage {
             .sum()
     }
 
-    pub fn randomize_least_used_color(&mut self) {
+    pub fn randomize_unused_colors(&mut self) {
         let mut counts = vec![0; self.palette.palette.len()];
 
         for x in 0..self.original.width() {
@@ -134,18 +134,10 @@ impl OptimizedImage {
             }
         }
 
-        let mut least_index = 0;
-        let mut least_count = u32::MAX;
-
         for (index, count) in counts.iter().enumerate() {
-            if *count < least_count {
-                least_index = index;
-                least_count = *count;
+            if *count == 0 {
+                self.palette.randomize_single(index);
             }
-        }
-
-        if least_count < 32 {
-            self.palette.randomize_single(least_index);
         }
     }
 
@@ -173,14 +165,15 @@ impl OptimizedImage {
 
         self.palette.palette[index] = new_value;
 
-        if rand::thread_rng().gen_range(0.0, 1.0) < 0.01 {
-            self.randomize_least_used_color();
-        }
-
         self.optimize();
 
         if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
             self.palette.palette[index] = current_value;
+            self.optimize();
+        }
+
+        if rand::thread_rng().gen_range(0.0, 1.0) < 0.01 {
+            self.randomize_unused_colors();
             self.optimize();
         }
     }
