@@ -20,4 +20,8 @@ pub struct Config {
     // Rate of decreasing the probability of taking a worse palette.
     #[clap(short, long, default_value = "0.00001")]
     pub p_delta: f64,
+
+    // Whether to dither the output.
+    #[clap(short, long)]
+    pub dither: bool,
 }

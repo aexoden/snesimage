@@ -17,7 +17,6 @@ pub mod util;
 
 /*
 Ideas:
-   - Figure out how to combine the above with dithering.
    - Before output, sort the colors in the palette to group like colors.
    - Do k-means clustering in a perceptually uniform color space.
 */
@@ -27,15 +26,22 @@ struct OptimizedImage {
     tile_palettes: Vec<u8>,
     palette: Palette,
     palette_map: Vec<u8>,
+    dither: bool,
 }
 
 impl OptimizedImage {
-    pub fn new(source: &image::RgbaImage, palette_count: usize, palette_size: usize) -> Self {
+    pub fn new(
+        source: &image::RgbaImage,
+        palette_count: usize,
+        palette_size: usize,
+        dither: bool,
+    ) -> Self {
         OptimizedImage {
             original: source.clone(),
             tile_palettes: vec![0; 32 * 32],
             palette: Palette::new(palette_count, palette_size),
             palette_map: vec![0; (source.width() * source.height()) as usize],
+            dither,
         }
     }
 
@@ -48,6 +54,12 @@ impl OptimizedImage {
     }
 
     pub fn initialize_tiles(&mut self) {
+        if self.palette.sub_count == 1 {
+            self.recalculate_palette(0);
+            self.optimize();
+            return;
+        }
+
         let mut means: Vec<Euclid<[f64; 3]>> = vec![];
         let mut map: Vec<usize> = vec![];
 
@@ -186,50 +198,71 @@ impl OptimizedImage {
         }
     }
 
-    pub fn optimize(&mut self) {
-        for tile_x in 0..self.width_in_tiles() {
-            for tile_y in 0..self.height_in_tiles() {
-                self.optimize_tile(tile_x as usize, tile_y as usize);
-            }
-        }
+    fn get_palette_index(&self, x: usize, y: usize) -> usize {
+        let tile_x = x / 8;
+        let tile_y = y / 8;
+        let tile_index = tile_x + tile_y * self.width_in_tiles();
+
+        self.tile_palettes[tile_index] as usize
     }
 
-    fn optimize_tile(&mut self, tile_x: usize, tile_y: usize) {
-        let palette = self.tile_palettes[tile_y * self.width_in_tiles() + tile_x];
+    pub fn optimize(&mut self) {
+        let dither_weights = if self.dither {
+            [7.0 / 16.0, 3.0 / 16.0, 5.0 / 16.0, 1.0 / 16.0]
+        } else {
+            [0.0, 0.0, 0.0, 0.0]
+        };
 
-        let mut colors = vec![0; 8 * 8];
+        let error_multiplier = 0.8;
+        let mut error =
+            vec![vec![0.0; 3]; self.original.width() as usize * self.original.height() as usize];
 
-        for x in 0..8 {
-            for y in 0..8 {
-                let original_pixel = self
-                    .original
-                    .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+        for x in 0..self.original.width() {
+            for y in 0..self.original.width() {
+                let pixel_index = (y * self.original.width() + x) as usize;
+                let original_color = self.original.get_pixel(x, y);
+                let palette = self.get_palette_index(x as usize, y as usize);
 
-                if original_pixel[3] > 0 {
-                    let mut best_delta = f64::MAX;
-                    let mut best_color = 0;
+                let target_color_values = [
+                    original_color[0] as f64 + error[pixel_index][0],
+                    original_color[1] as f64 + error[pixel_index][1],
+                    original_color[2] as f64 + error[pixel_index][2],
+                ];
 
-                    for color_index in 0..self.palette.sub_size {
-                        let color = &self.palette.palette
-                            [palette as usize * self.palette.sub_size + color_index];
-                        let delta = color_distance(original_pixel, &color.as_rgba());
+                let color_index = self
+                    .palette
+                    .get_closest_color_index(palette, &target_color_values);
+                self.palette_map[pixel_index] = color_index as u8;
 
-                        if delta < best_delta {
-                            best_delta = delta;
-                            best_color = color_index;
-                        }
+                let new_color =
+                    self.palette.palette[palette * self.palette.sub_size + color_index].as_rgba();
+
+                let pixel_error = [
+                    target_color_values[0] - new_color[0] as f64,
+                    target_color_values[1] - new_color[1] as f64,
+                    target_color_values[2] - new_color[2] as f64,
+                ];
+
+                for (i, value) in pixel_error.iter().enumerate() {
+                    if x + 1 < self.original.width() {
+                        error[pixel_index + 1][i] = value * error_multiplier * dither_weights[0];
                     }
 
-                    colors[y * 8 + x] = best_color;
-                }
-            }
-        }
+                    if y + 1 < self.original.height() {
+                        if x > 0 {
+                            error[pixel_index + self.original.width() as usize - 1][i] =
+                                value * error_multiplier * dither_weights[1];
+                        }
 
-        for x in 0..8 {
-            for y in 0..8 {
-                self.palette_map
-                    [(tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x)] =
-                    colors[y * 8 + x] as u8;
+                        error[pixel_index + self.original.width() as usize][i] =
+                            value * error_multiplier * dither_weights[2];
+
+                        if x + 1 < self.original.width() {
+                            error[pixel_index + self.original.width() as usize + 1][i] =
+                                value * error_multiplier * dither_weights[3];
+                        }
+                    }
+                }
             }
         }
     }
@@ -384,6 +417,30 @@ impl Palette {
         self.palette[index] = SnesColor::new(r, g, b);
     }
 
+    pub fn get_closest_color_index(&self, palette: usize, target_color: &[f64]) -> usize {
+        let mut best_index = 0;
+        let mut best_error = f64::MAX;
+
+        let target_color = image::Rgba([
+            target_color[0].min(255.0).max(0.0).round() as u8,
+            target_color[1].min(255.0).max(0.0).round() as u8,
+            target_color[2].min(255.0).max(0.0).round() as u8,
+            255,
+        ]);
+
+        for index in 0..self.sub_size {
+            let color = self.palette[palette * self.sub_size + index].as_rgba();
+            let error = color_distance(&color, &target_color);
+
+            if error < best_error {
+                best_error = error;
+                best_index = index;
+            }
+        }
+
+        best_index
+    }
+
     pub fn render(
         &self,
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
@@ -418,6 +475,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         &source_image,
         config.subpalette_count,
         config.subpalette_size,
+        config.dither,
     );
 
     target_image.initialize_tiles();
@@ -452,6 +510,12 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
             if (error - last_error).abs() > f64::EPSILON {
                 info!("p: {:0.5}  Error: {}", p, target_image.error());
                 last_error = error;
+            }
+
+            p -= config.p_delta;
+
+            if p < 0.0 {
+                p = 0.0;
             }
         }
 
@@ -506,11 +570,6 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         }
 
         canvas.present();
-        p -= config.p_delta;
-
-        if p < 0.0 {
-            p = 0.0;
-        }
     }
 
     Ok(())
