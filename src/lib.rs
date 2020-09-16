@@ -159,43 +159,11 @@ impl OptimizedImage {
     }
 
     pub fn recalculate_palettes(&mut self) {
-        let mut sums = vec![vec![0; 3]; self.palette.sub_count];
-        let mut counts = vec![0; self.palette.sub_count];
-
-        for x in 0..self.original.width() {
-            for y in 0..self.original.height() {
-                let color = self.original.get_pixel(x, y);
-
-                if color[3] > 0 {
-                    let tile_x = x / 8;
-                    let tile_y = y / 8;
-                    let tile_index = tile_y as usize * self.width_in_tiles() + tile_x as usize;
-                    let palette = self.tile_palettes[tile_index];
-
-                    for i in 0..sums[0].len() {
-                        sums[palette as usize][i] += color[i] as usize;
-                    }
-
-                    counts[palette as usize] += 1;
-                }
-            }
+        for palette in 0..self.palette.sub_count {
+            self.recalculate_palette(palette);
         }
 
-        for (palette, sum) in sums.iter().enumerate() {
-            let color = if counts[palette] > 0 {
-                SnesColor::new(
-                    ((sum[0] / counts[palette]) as f64 / 8.0).round() as u8,
-                    ((sum[1] / counts[palette]) as f64 / 8.0).round() as u8,
-                    ((sum[2] / counts[palette]) as f64 / 8.0).round() as u8,
-                )
-            } else {
-                SnesColor::new(0, 0, 0)
-            };
-
-            for i in 0..self.palette.sub_size {
-                self.palette.palette[palette * self.palette.sub_size + i] = color.clone();
-            }
-        }
+        self.optimize();
     }
 
     fn get_palette_index(&self, x: usize, y: usize) -> usize {
