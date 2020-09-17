@@ -191,8 +191,8 @@ impl OptimizedImage {
         let mut error =
             vec![vec![0.0; 3]; self.original.width() as usize * self.original.height() as usize];
 
-        for x in 0..self.original.width() {
-            for y in 0..self.original.width() {
+        for y in 0..self.original.height() {
+            for x in 0..self.original.width() {
                 let pixel_index = (y * self.original.width() + x) as usize;
                 let original_color = self.original.get_pixel(x, y);
                 let palette = self.get_palette_index(x as usize, y as usize);
@@ -359,7 +359,10 @@ impl OptimizedImage {
                 if i == 0 {
                     palette.push(0);
                 } else if i <= self.palette.sub_size {
-                    palette.push(self.palette.palette[palette_index * self.palette.sub_size + i - 1].as_u16());
+                    palette.push(
+                        self.palette.palette[palette_index * self.palette.sub_size + i - 1]
+                            .as_u16(),
+                    );
                 } else {
                     palette.push(0);
                 }
@@ -376,7 +379,8 @@ impl OptimizedImage {
 
                 for y in 0..8 {
                     for x in 0..8 {
-                        let index = (tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x);
+                        let index =
+                            (tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x);
                         tile.push(self.palette_map[index]);
                     }
                 }
@@ -386,11 +390,14 @@ impl OptimizedImage {
             }
         }
 
-        json::stringify_pretty(json::object!{
-            palette: palette,
-            tiles: tiles,
-            tile_palettes: tile_palettes,
-        }, 4)
+        json::stringify_pretty(
+            json::object! {
+                palette: palette,
+                tiles: tiles,
+                tile_palettes: tile_palettes,
+            },
+            4,
+        )
     }
 }
 
