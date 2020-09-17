@@ -119,7 +119,9 @@ impl OptimizedImage {
                 color.data[2]
             );
 
-            self.recalculate_palette(index);
+            for i in 0..self.palette.sub_size {
+                self.palette.palette[index * self.palette.sub_size + i] = color.clone();
+            }
         }
 
         self.optimize();
@@ -503,7 +505,8 @@ impl Palette {
 
 #[derive(PartialEq)]
 enum Phase {
-    Selection,
+    TileAssignment,
+    Clustering,
     Optimization,
 }
 
@@ -535,7 +538,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     canvas.present();
 
     let mut finished = false;
-    let mut phase = Phase::Selection;
+    let mut phase = Phase::TileAssignment;
     let mut event_pump = sdl_context.event_pump()?;
     let mut p = 1.0;
     let mut last_error = f64::MAX;
@@ -561,13 +564,13 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
-        render_image(&source_image, &mut canvas, 0, 0, phase == Phase::Selection);
+        render_image(&source_image, &mut canvas, 0, 0, phase == Phase::TileAssignment);
         render_image(
             &target_image.as_rgbaimage(),
             &mut canvas,
             256,
             0,
-            phase == Phase::Selection,
+            phase == Phase::TileAssignment,
         );
         target_image.palette.render(&mut canvas, 512, 0);
 
@@ -586,8 +589,18 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
                     ..
                 } => {
                     if x >= 520 && y >= 232 && x < (520 + 52) && y < (232 + 16) {
-                        info!("Beginning optimization");
-                        phase = Phase::Optimization;
+                        match phase {
+                            Phase::TileAssignment => {
+                                info!("Generating initial palettes");
+                                phase = Phase::Clustering;
+                                target_image.recalculate_palettes();
+                            },
+                            Phase::Clustering => {
+                                info!("Beginning optimization");
+                                phase = Phase::Optimization;
+                            },
+                            _ => {},
+                        }
                     }
 
                     if x >= 580 && y >= 232 && x < (580 + 52) && y < (232 + 16) {
@@ -604,7 +617,10 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
                         target_image.tile_palettes[index] =
                             (target_image.tile_palettes[index] + 1) % config.subpalette_count as u8;
-                        target_image.recalculate_palettes();
+
+                        if phase != Phase::TileAssignment {
+                            target_image.recalculate_palettes();
+                        }
                     }
                 }
                 Event::Quit { .. }
