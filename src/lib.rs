@@ -76,8 +76,11 @@ impl OptimizedImage {
                         let color = self
                             .original
                             .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
-                        for i in 0..sum.len() {
-                            sum[i] += color[i] as usize;
+
+                        if color[3] > 0 {
+                            for i in 0..sum.len() {
+                                sum[i] += color[i] as usize;
+                            }
                         }
                     }
                 }
@@ -203,16 +206,29 @@ impl OptimizedImage {
                 let color_index = self
                     .palette
                     .get_closest_color_index(palette, &target_color_values);
-                self.palette_map[pixel_index] = color_index as u8;
+
+                self.palette_map[pixel_index] = if original_color[3] > 0 {
+                    color_index as u8
+                } else {
+                    0
+                };
 
                 let new_color =
                     self.palette.palette[palette * self.palette.sub_size + color_index].as_rgba();
 
-                let pixel_error = [
-                    target_color_values[0] - new_color[0] as f64,
-                    target_color_values[1] - new_color[1] as f64,
-                    target_color_values[2] - new_color[2] as f64,
-                ];
+                let pixel_error = if original_color[3] > 0 {
+                    [
+                        target_color_values[0] - new_color[0] as f64,
+                        target_color_values[1] - new_color[1] as f64,
+                        target_color_values[2] - new_color[2] as f64,
+                    ]
+                } else {
+                    [
+                        error[pixel_index][0],
+                        error[pixel_index][1],
+                        error[pixel_index][2],
+                    ]
+                };
 
                 for (i, value) in pixel_error.iter().enumerate() {
                     if x + 1 < self.original.width() {
