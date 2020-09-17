@@ -1,4 +1,6 @@
 use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
 
 use cogset::{Euclid, Kmeans};
 use log::info;
@@ -11,6 +13,7 @@ use sdl2::rect::Point;
 use sdl2::rect::Rect;
 
 extern crate image;
+extern crate json;
 
 pub mod config;
 pub mod util;
@@ -331,6 +334,48 @@ impl OptimizedImage {
 
         image
     }
+
+    pub fn as_json(&self) -> String {
+        let mut palette = vec![];
+
+        for palette_index in 0..self.palette.sub_count {
+            for i in 0..16 {
+                if i == 0 {
+                    palette.push(0);
+                } else if i <= self.palette.sub_size {
+                    palette.push(self.palette.palette[palette_index * self.palette.sub_size + i - 1].as_u16());
+                } else {
+                    palette.push(0);
+                }
+            }
+        }
+
+        let mut tiles = vec![];
+        let mut tile_palettes = vec![];
+
+        for tile_y in 0..self.height_in_tiles() {
+            for tile_x in 0..self.width_in_tiles() {
+                let tile_index = tile_y * self.width_in_tiles() + tile_x;
+                let mut tile = vec![];
+
+                for y in 0..8 {
+                    for x in 0..8 {
+                        let index = (tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x);
+                        tile.push(self.palette_map[index]);
+                    }
+                }
+
+                tiles.push(tile);
+                tile_palettes.push(self.tile_palettes[tile_index]);
+            }
+        }
+
+        json::stringify_pretty(json::object!{
+            palette: palette,
+            tiles: tiles,
+            tile_palettes: tile_palettes,
+        }, 4)
+    }
 }
 
 #[derive(Clone)]
@@ -360,6 +405,10 @@ impl SnesColor {
             self.data[1] * 8 + self.data[1] / 4,
             self.data[2] * 8 + self.data[2] / 4,
         )
+    }
+
+    pub fn as_u16(&self) -> u16 {
+        self.data[0] as u16 + ((self.data[1] as u16) << 5) + ((self.data[2] as u16) << 10)
     }
 }
 
@@ -502,6 +551,9 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         canvas.set_draw_color(Color::RGB(0, 128, 0));
         canvas.fill_rect(Rect::new(520, 232, 52, 16))?;
 
+        canvas.set_draw_color(Color::RGB(0, 0, 255));
+        canvas.fill_rect(Rect::new(580, 232, 52, 16))?;
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::MouseButtonUp {
@@ -513,6 +565,12 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
                     if x >= 520 && y >= 232 && x < (520 + 52) && y < (232 + 16) {
                         info!("Beginning optimization");
                         phase = Phase::Optimization;
+                    }
+
+                    if x >= 580 && y >= 232 && x < (580 + 52) && y < (232 + 16) {
+                        info!("Writing output to {}", config.target_filename);
+                        let mut file = File::create(&config.target_filename)?;
+                        file.write_all(target_image.as_json().as_bytes())?;
                     }
 
                     if x < 512 {

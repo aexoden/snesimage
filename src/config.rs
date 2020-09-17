@@ -6,8 +6,8 @@ pub struct Config {
     // Filename for the image to optimize.
     pub source_filename: String,
 
-    // Filename for the generated output.
-    //pub target_filename: String,
+    // Filename for the generated JSON output.
+    pub target_filename: String,
 
     // Number of separate subpalettes to use.
     #[clap(short = "c", long, default_value = "1")]
