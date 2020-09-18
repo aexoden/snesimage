@@ -69,6 +69,7 @@ impl OptimizedImage {
         for tile_x in 0..self.width_in_tiles() {
             for tile_y in 0..self.height_in_tiles() {
                 let mut sum = vec![0; 3];
+                let mut count = 0;
                 let index = tile_y * self.width_in_tiles() + tile_x;
 
                 for x in 0..8 {
@@ -81,15 +82,17 @@ impl OptimizedImage {
                             for i in 0..sum.len() {
                                 sum[i] += color[i] as usize;
                             }
+
+                            count += 1;
                         }
                     }
                 }
 
                 if sum[0] + sum[1] + sum[2] > 0 {
                     means.push(Euclid([
-                        sum[0] as f64 / 64.0,
-                        sum[1] as f64 / 64.0,
-                        sum[2] as f64 / 64.0,
+                        sum[0] as f64 / count as f64,
+                        sum[1] as f64 / count as f64,
+                        sum[2] as f64 / count as f64,
                     ]));
 
                     map.push(index);
