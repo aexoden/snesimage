@@ -342,7 +342,11 @@ impl OptimizedImage {
                     for x in 0..8 {
                         let index =
                             (tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x);
-                        if self.original.get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32)[3] == 0 {
+                        if self
+                            .original
+                            .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32)[3]
+                            == 0
+                        {
                             tile.push(0);
                         } else {
                             tile.push(self.palette_map[index] + 1);
@@ -533,7 +537,13 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
-        render_image(&source_image, &mut canvas, 0, 0, phase == Phase::TileAssignment);
+        render_image(
+            &source_image,
+            &mut canvas,
+            0,
+            0,
+            phase == Phase::TileAssignment,
+        );
         render_image(
             &target_image.as_rgbaimage(),
             &mut canvas,
@@ -563,12 +573,12 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
                                 info!("Generating initial palettes");
                                 phase = Phase::Clustering;
                                 target_image.recalculate_palettes();
-                            },
+                            }
                             Phase::Clustering => {
                                 info!("Beginning optimization");
                                 phase = Phase::Optimization;
-                            },
-                            _ => {},
+                            }
+                            _ => {}
                         }
                     }
 
