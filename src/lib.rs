@@ -4,10 +4,13 @@ use std::io::prelude::*;
 
 use cogset::{Euclid, Kmeans};
 use log::info;
+use scarlet::color::{Color,RGBColor};
+use scarlet::colors::cielabcolor::CIELABColor;
+use scarlet::coord::Coord;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
-use sdl2::pixels::Color;
+use sdl2::pixels::Color as SDLColor;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 
@@ -20,7 +23,6 @@ pub mod util;
 /*
 Ideas:
    - Before output, sort the colors in the palette to group like colors.
-   - Do k-means clustering in a perceptually uniform color space.
    - Use an actual GUI library so the user doesn't have to deal with unlabeled buttons.
 */
 
@@ -68,7 +70,7 @@ impl OptimizedImage {
 
         for tile_x in 0..self.width_in_tiles() {
             for tile_y in 0..self.height_in_tiles() {
-                let mut sum = vec![0; 3];
+                let mut sum = vec![0.0; 3];
                 let mut count = 0;
                 let index = tile_y * self.width_in_tiles() + tile_x;
 
@@ -77,22 +79,23 @@ impl OptimizedImage {
                         let color = self
                             .original
                             .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+                        let lab_color: CIELABColor = RGBColor::from((color[0], color[1], color[2])).convert();
 
                         if color[3] > 0 {
-                            for i in 0..sum.len() {
-                                sum[i] += color[i] as usize;
-                            }
+                            sum[0] += lab_color.l;
+                            sum[1] += lab_color.a;
+                            sum[2] += lab_color.b;
 
                             count += 1;
                         }
                     }
                 }
 
-                if sum[0] + sum[1] + sum[2] > 0 {
+                if sum[0] + sum[1] + sum[2] > 0.0 {
                     means.push(Euclid([
-                        sum[0] as f64 / count as f64,
-                        sum[1] as f64 / count as f64,
-                        sum[2] as f64 / count as f64,
+                        sum[0] / count as f64,
+                        sum[1] / count as f64,
+                        sum[2] / count as f64,
                     ]));
 
                     map.push(index);
@@ -108,10 +111,12 @@ impl OptimizedImage {
                 self.tile_palettes[map[*tile_index]] = index as u8;
             }
 
+            let rgb_color: RGBColor = CIELABColor::from(Coord{x: mean.0[0], y: mean.0[1], z: mean.0[2]}).convert();
+
             let color = SnesColor::new(
-                (mean.0[0] / 8.0).round() as u8,
-                (mean.0[1] / 8.0).round() as u8,
-                (mean.0[2] / 8.0).round() as u8,
+                rgb_color.int_r() / 8,
+                rgb_color.int_g() / 8,
+                rgb_color.int_b() / 8,
             );
 
             info!(
@@ -163,12 +168,13 @@ impl OptimizedImage {
                         let color = self
                             .original
                             .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+                        let lab_color: CIELABColor = RGBColor::from((color[0], color[1], color[2])).convert();
 
                         if color[3] > 0 {
                             pixels.push(Euclid([
-                                color[0] as f64,
-                                color[1] as f64,
-                                color[2] as f64,
+                                lab_color.l,
+                                lab_color.a,
+                                lab_color.b,
                             ]));
                         }
                     }
@@ -179,10 +185,12 @@ impl OptimizedImage {
         let kmeans = Kmeans::new(&pixels, self.palette.sub_size);
 
         for (index, (value, _)) in kmeans.clusters().iter().enumerate() {
+            let rgb_color: RGBColor = CIELABColor::from(Coord{x: value.0[0], y: value.0[1], z: value.0[2]}).convert();
+
             let color = SnesColor::new(
-                (value.0[0] / 8.0).round() as u8,
-                (value.0[1] / 8.0).round() as u8,
-                (value.0[2] / 8.0).round() as u8,
+                rgb_color.int_r() / 8,
+                rgb_color.int_g() / 8,
+                rgb_color.int_b() / 8,
             );
 
             self.palette.palette[palette * self.palette.sub_size + index] = color;
@@ -394,8 +402,8 @@ impl SnesColor {
         ])
     }
 
-    pub fn as_sdl_rgb(&self) -> Color {
-        Color::RGB(
+    pub fn as_sdl_rgb(&self) -> SDLColor {
+        SDLColor::RGB(
             self.data[0] * 8 + self.data[0] / 4,
             self.data[1] * 8 + self.data[1] / 4,
             self.data[2] * 8 + self.data[2] / 4,
@@ -496,7 +504,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
     let mut canvas = window.into_canvas().build()?;
 
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.set_draw_color(SDLColor::RGB(0, 0, 0));
     canvas.clear();
     canvas.present();
 
@@ -538,7 +546,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
             }
         }
 
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.set_draw_color(SDLColor::RGB(0, 0, 0));
         canvas.clear();
         render_image(
             &source_image,
@@ -556,10 +564,10 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         );
         target_image.palette.render(&mut canvas, 512, 0);
 
-        canvas.set_draw_color(Color::RGB(0, 128, 0));
+        canvas.set_draw_color(SDLColor::RGB(0, 128, 0));
         canvas.fill_rect(Rect::new(520, 232, 52, 16))?;
 
-        canvas.set_draw_color(Color::RGB(0, 0, 255));
+        canvas.set_draw_color(SDLColor::RGB(0, 0, 255));
         canvas.fill_rect(Rect::new(580, 232, 52, 16))?;
 
         for event in event_pump.poll_iter() {
@@ -631,9 +639,9 @@ fn render_image(
 ) {
     for (x, y, pixel) in image.enumerate_pixels() {
         if !grid || (x % 8 > 0 && y % 8 > 0) {
-            canvas.set_draw_color(Color::RGB(pixel[0], pixel[1], pixel[2]));
+            canvas.set_draw_color(SDLColor::RGB(pixel[0], pixel[1], pixel[2]));
         } else {
-            canvas.set_draw_color(Color::RGB(
+            canvas.set_draw_color(SDLColor::RGB(
                 pixel[0] / 5 * 4,
                 pixel[1] / 5 * 4,
                 pixel[2] / 5 * 4,
