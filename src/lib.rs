@@ -254,20 +254,20 @@ impl OptimizedImage {
 
                 for (i, value) in pixel_error.iter().enumerate() {
                     if x + 1 < self.original.width() {
-                        error[pixel_index + 1][i] = value * error_multiplier * dither_weights[0];
+                        error[pixel_index + 1][i] += value * error_multiplier * dither_weights[0];
                     }
 
                     if y + 1 < self.original.height() {
                         if x > 0 {
-                            error[pixel_index + self.original.width() as usize - 1][i] =
+                            error[pixel_index + self.original.width() as usize - 1][i] +=
                                 value * error_multiplier * dither_weights[1];
                         }
 
-                        error[pixel_index + self.original.width() as usize][i] =
+                        error[pixel_index + self.original.width() as usize][i] +=
                             value * error_multiplier * dither_weights[2];
 
                         if x + 1 < self.original.width() {
-                            error[pixel_index + self.original.width() as usize + 1][i] =
+                            error[pixel_index + self.original.width() as usize + 1][i] +=
                                 value * error_multiplier * dither_weights[3];
                         }
                     }
