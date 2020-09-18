@@ -4,7 +4,6 @@ use std::io::prelude::*;
 
 use cogset::{Euclid, Kmeans};
 use log::info;
-use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -22,6 +21,7 @@ pub mod util;
 Ideas:
    - Before output, sort the colors in the palette to group like colors.
    - Do k-means clustering in a perceptually uniform color space.
+   - Use an actual GUI library so the user doesn't have to deal with unlabeled buttons.
 */
 
 struct OptimizedImage {
@@ -124,6 +124,26 @@ impl OptimizedImage {
             }
         }
 
+        self.optimize();
+    }
+
+    pub fn optimize_palette_entry_channel(&mut self, palette: usize, index: usize, channel: usize) {
+        let mut best_value = 0;
+        let mut best_error = f64::MAX;
+
+        for value in 0..32 {
+            self.palette.palette[palette * self.palette.sub_size + index].data[channel] = value;
+            self.optimize();
+
+            let error = self.error();
+
+            if error < best_error {
+                best_error = error;
+                best_value = value;
+            }
+        }
+
+        self.palette.palette[palette * self.palette.sub_size + index].data[channel] = best_value;
         self.optimize();
     }
 
@@ -272,67 +292,6 @@ impl OptimizedImage {
             .sum()
     }
 
-    pub fn randomize_unused_colors(&mut self) {
-        let mut counts = vec![0; self.palette.palette.len()];
-
-        for x in 0..self.original.width() {
-            for y in 0..self.original.height() {
-                let tile_x = x / 8;
-                let tile_y = y / 8;
-
-                let index = self.tile_palettes
-                    [tile_y as usize * self.width_in_tiles() + tile_x as usize]
-                    as usize
-                    * self.palette.sub_size
-                    + self.palette_map[(y * self.original.width() + x) as usize] as usize;
-                counts[index as usize] += 1;
-            }
-        }
-
-        for (index, count) in counts.iter().enumerate() {
-            if *count == 0 {
-                self.palette.randomize_single(index);
-            }
-        }
-    }
-
-    pub fn update_palette(&mut self, p: f64) {
-        let index = rand::thread_rng().gen_range(0, self.palette.palette.len());
-        let current_error = self.error();
-        let current_value = self.palette.palette[index].clone();
-
-        let channel = rand::thread_rng().gen_range(0, 3);
-
-        let delta: i8 = if current_value.data[channel] == 0 {
-            1
-        } else if current_value.data[channel] == 31 {
-            -1
-        } else {
-            match rand::thread_rng().gen_range(0, 2) {
-                0 => -1,
-                1 => 1,
-                _ => unreachable!(),
-            }
-        };
-
-        let mut new_value = current_value.clone();
-        new_value.data[channel] = (new_value.data[channel] as i8 + delta) as u8;
-
-        self.palette.palette[index] = new_value;
-
-        self.optimize();
-
-        if rand::thread_rng().gen_range(0.0, 1.0) > p && self.error() > current_error {
-            self.palette.palette[index] = current_value;
-            self.optimize();
-        }
-
-        if p < 0.000001 && rand::thread_rng().gen_range(0.0, 1.0) < 0.001 {
-            self.randomize_unused_colors();
-            self.optimize();
-        }
-    }
-
     pub fn as_rgbaimage(&self) -> image::RgbaImage {
         let mut image = image::RgbaImage::new(self.original.width(), self.original.height());
 
@@ -383,7 +342,11 @@ impl OptimizedImage {
                     for x in 0..8 {
                         let index =
                             (tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x);
-                        tile.push(self.palette_map[index]);
+                        if self.original.get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32)[3] == 0 {
+                            tile.push(0);
+                        } else {
+                            tile.push(self.palette_map[index] + 1);
+                        }
                     }
                 }
 
@@ -450,13 +413,6 @@ impl Palette {
             sub_count,
             sub_size,
         }
-    }
-
-    pub fn randomize_single(&mut self, index: usize) {
-        let r = rand::thread_rng().gen_range(0, 32);
-        let g = rand::thread_rng().gen_range(0, 32);
-        let b = rand::thread_rng().gen_range(0, 32);
-        self.palette[index] = SnesColor::new(r, g, b);
     }
 
     pub fn get_closest_color_index(&self, palette: usize, target_color: &[f64]) -> usize {
@@ -540,25 +496,38 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     let mut finished = false;
     let mut phase = Phase::TileAssignment;
     let mut event_pump = sdl_context.event_pump()?;
-    let mut p = 1.0;
     let mut last_error = f64::MAX;
+
+    let mut palette = 0;
+    let mut palette_index = 0;
+    let mut channel = 0;
 
     while !finished {
         if let Phase::Optimization = phase {
-            target_image.update_palette(p);
+            target_image.optimize_palette_entry_channel(palette, palette_index, channel);
             target_image.optimize();
 
             let error = target_image.error();
 
             if (error - last_error).abs() > f64::EPSILON {
-                info!("p: {:0.5}  Error: {}", p, target_image.error());
+                info!("Current Error: {}", target_image.error());
                 last_error = error;
             }
 
-            p -= config.p_delta;
+            channel += 1;
 
-            if p < 0.0 {
-                p = 0.0;
+            if channel == 3 {
+                channel = 0;
+                palette_index += 1;
+
+                if palette_index == config.subpalette_size {
+                    palette_index = 0;
+                    palette += 1;
+
+                    if palette == config.subpalette_count {
+                        palette = 0;
+                    }
+                }
             }
         }
 

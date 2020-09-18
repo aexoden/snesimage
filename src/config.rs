@@ -17,10 +17,6 @@ pub struct Config {
     #[clap(short = "s", long, default_value = "7")]
     pub subpalette_size: usize,
 
-    // Rate of decreasing the probability of taking a worse palette.
-    #[clap(short, long, default_value = "0.00001")]
-    pub p_delta: f64,
-
     // Whether to dither the output.
     #[clap(short, long)]
     pub dither: bool,
