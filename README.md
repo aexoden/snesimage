@@ -19,6 +19,16 @@ The following command-line options are available:
   transparent color. As a result, values of 3, 7 and 15 are most likely to be
   useful.
 * `--dither` enables dithering of the result.
+* `--perceptual-palettes` does the initial palette assignment in CIELAB space
+  instead of RGB. This generally results in a superior tile assignment, but you
+  may wish to try both.
+* `--perceptual-optimization` does the entire optimization phase in CIELAB
+  space. This may produce better results, but is significantly slower, and
+  caches computations to prevent it from being even slower. This cache can grow
+  to multiple gigabytes, so monitoring memory usage is recommended. Nonetheless,
+  the results seem to be better in general, though this may depend on your
+  image. NOTE: The displayed error values are not comparable between the two
+  modes as they are calculated differently.
 
 The program takes two mandatory arguments: an image to optimize, and the
 filename you wish any JSON output to be written to.

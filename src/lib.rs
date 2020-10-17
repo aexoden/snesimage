@@ -2,9 +2,10 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 
+use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
-use scarlet::color::{Color,RGBColor};
+use scarlet::color::{Color, RGBColor};
 use scarlet::colors::cielabcolor::CIELABColor;
 use scarlet::coord::Coord;
 use sdl2::event::Event;
@@ -32,6 +33,8 @@ struct OptimizedImage {
     palette: Palette,
     palette_map: Vec<u8>,
     dither: bool,
+    perceptual_palettes: bool,
+    perceptual_optimization: bool,
 }
 
 impl OptimizedImage {
@@ -40,6 +43,8 @@ impl OptimizedImage {
         palette_count: usize,
         palette_size: usize,
         dither: bool,
+        perceptual_palettes: bool,
+        perceptual_optimization: bool,
     ) -> Self {
         OptimizedImage {
             original: source.clone(),
@@ -47,6 +52,8 @@ impl OptimizedImage {
             palette: Palette::new(palette_count, palette_size),
             palette_map: vec![0; (source.width() * source.height()) as usize],
             dither,
+            perceptual_palettes,
+            perceptual_optimization,
         }
     }
 
@@ -79,12 +86,19 @@ impl OptimizedImage {
                         let color = self
                             .original
                             .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
-                        let lab_color: CIELABColor = RGBColor::from((color[0], color[1], color[2])).convert();
 
                         if color[3] > 0 {
-                            sum[0] += lab_color.l;
-                            sum[1] += lab_color.a;
-                            sum[2] += lab_color.b;
+                            if self.perceptual_palettes {
+                                let lab_color: CIELABColor =
+                                    RGBColor::from((color[0], color[1], color[2])).convert();
+                                sum[0] += lab_color.l;
+                                sum[1] += lab_color.a;
+                                sum[2] += lab_color.b;
+                            } else {
+                                for i in 0..sum.len() {
+                                    sum[i] += color[i] as f64;
+                                }
+                            }
 
                             count += 1;
                         }
@@ -111,13 +125,26 @@ impl OptimizedImage {
                 self.tile_palettes[map[*tile_index]] = index as u8;
             }
 
-            let rgb_color: RGBColor = CIELABColor::from(Coord{x: mean.0[0], y: mean.0[1], z: mean.0[2]}).convert();
+            let color = if self.perceptual_palettes {
+                let rgb_color: RGBColor = CIELABColor::from(Coord {
+                    x: mean.0[0],
+                    y: mean.0[1],
+                    z: mean.0[2],
+                })
+                .convert();
 
-            let color = SnesColor::new(
-                rgb_color.int_r() / 8,
-                rgb_color.int_g() / 8,
-                rgb_color.int_b() / 8,
-            );
+                SnesColor::new(
+                    rgb_color.int_r() / 8,
+                    rgb_color.int_g() / 8,
+                    rgb_color.int_b() / 8,
+                )
+            } else {
+                SnesColor::new(
+                    (mean.0[0] / 8.0).round() as u8,
+                    (mean.0[1] / 8.0).round() as u8,
+                    (mean.0[2] / 8.0).round() as u8,
+                )
+            };
 
             info!(
                 "{} tiles using color: {}, {}, {}",
@@ -168,14 +195,20 @@ impl OptimizedImage {
                         let color = self
                             .original
                             .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
-                        let lab_color: CIELABColor = RGBColor::from((color[0], color[1], color[2])).convert();
 
                         if color[3] > 0 {
-                            pixels.push(Euclid([
-                                lab_color.l,
-                                lab_color.a,
-                                lab_color.b,
-                            ]));
+                            if self.perceptual_palettes {
+                                let lab_color: CIELABColor =
+                                    RGBColor::from((color[0], color[1], color[2])).convert();
+
+                                pixels.push(Euclid([lab_color.l, lab_color.a, lab_color.b]));
+                            } else {
+                                pixels.push(Euclid([
+                                    color[0] as f64,
+                                    color[1] as f64,
+                                    color[2] as f64,
+                                ]));
+                            }
                         }
                     }
                 }
@@ -185,13 +218,26 @@ impl OptimizedImage {
         let kmeans = Kmeans::new(&pixels, self.palette.sub_size);
 
         for (index, (value, _)) in kmeans.clusters().iter().enumerate() {
-            let rgb_color: RGBColor = CIELABColor::from(Coord{x: value.0[0], y: value.0[1], z: value.0[2]}).convert();
+            let rgb_color: RGBColor = CIELABColor::from(Coord {
+                x: value.0[0],
+                y: value.0[1],
+                z: value.0[2],
+            })
+            .convert();
 
-            let color = SnesColor::new(
-                rgb_color.int_r() / 8,
-                rgb_color.int_g() / 8,
-                rgb_color.int_b() / 8,
-            );
+            let color = if self.perceptual_palettes {
+                SnesColor::new(
+                    rgb_color.int_r() / 8,
+                    rgb_color.int_g() / 8,
+                    rgb_color.int_b() / 8,
+                )
+            } else {
+                SnesColor::new(
+                    (value.0[0] / 8.0).round() as u8,
+                    (value.0[1] / 8.0).round() as u8,
+                    (value.0[2] / 8.0).round() as u8,
+                )
+            };
 
             self.palette.palette[palette * self.palette.sub_size + index] = color;
         }
@@ -236,9 +282,11 @@ impl OptimizedImage {
                     original_color[2] as f64 + error[pixel_index][2],
                 ];
 
-                let color_index = self
-                    .palette
-                    .get_closest_color_index(palette, &target_color_values);
+                let color_index = self.palette.get_closest_color_index(
+                    palette,
+                    &target_color_values,
+                    self.perceptual_optimization,
+                );
 
                 self.palette_map[pixel_index] = if original_color[3] > 0 {
                     color_index as u8
@@ -296,8 +344,10 @@ impl OptimizedImage {
 
                 if other[3] == 0 {
                     0.0
+                } else if self.perceptual_optimization {
+                    color_distance_cielab(*pixel, *other)
                 } else {
-                    color_distance(pixel, other)
+                    color_distance_red_mean(*pixel, *other)
                 }
             })
             .sum()
@@ -430,7 +480,12 @@ impl Palette {
         }
     }
 
-    pub fn get_closest_color_index(&self, palette: usize, target_color: &[f64]) -> usize {
+    pub fn get_closest_color_index(
+        &self,
+        palette: usize,
+        target_color: &[f64],
+        cielab: bool,
+    ) -> usize {
         let mut best_index = 0;
         let mut best_error = f64::MAX;
 
@@ -443,7 +498,11 @@ impl Palette {
 
         for index in 0..self.sub_size {
             let color = self.palette[palette * self.sub_size + index].as_rgba();
-            let error = color_distance(&color, &target_color);
+            let error = if cielab {
+                color_distance_cielab(color, target_color)
+            } else {
+                color_distance_red_mean(color, target_color)
+            };
 
             if error < best_error {
                 best_error = error;
@@ -490,6 +549,8 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         config.subpalette_count,
         config.subpalette_size,
         config.dither,
+        config.perceptual_palettes,
+        config.perceptual_optimization,
     );
 
     target_image.initialize_tiles();
@@ -657,7 +718,7 @@ fn render_image(
     }
 }
 
-fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
+fn color_distance_red_mean(color1: image::Rgba<u8>, color2: image::Rgba<u8>) -> f64 {
     let red_mean = (color1[0] as f64 + color2[0] as f64) / 2.0;
     let r = color1[0] as f64 - color2[0] as f64;
     let g = color1[1] as f64 - color2[1] as f64;
@@ -665,4 +726,12 @@ fn color_distance(color1: &image::Rgba<u8>, color2: &image::Rgba<u8>) -> f64 {
 
     ((((512.0 + red_mean) * r * r) / 256.0) + 4.0 * g * g + (((767.0 - red_mean) * b * b) / 256.0))
         .sqrt()
+}
+
+#[cached]
+fn color_distance_cielab(color1: image::Rgba<u8>, color2: image::Rgba<u8>) -> f64 {
+    let color1 = RGBColor::from((color1[0], color1[1], color1[2]));
+    let color2 = RGBColor::from((color2[0], color2[1], color2[2]));
+
+    color1.distance(&color2)
 }

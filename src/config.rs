@@ -20,4 +20,12 @@ pub struct Config {
     // Whether to dither the output.
     #[clap(short, long)]
     pub dither: bool,
+
+    // Whether to use more expensive CIELAB-based-computations for the initial palette assignment.
+    #[clap(long)]
+    pub perceptual_palettes: bool,
+
+    // Whether to use more expensive CIELAB-based computations for the optimization phase.
+    #[clap(long)]
+    pub perceptual_optimization: bool,
 }
