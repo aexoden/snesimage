@@ -42,7 +42,6 @@ struct OptimizedImage {
     palette_map: Vec<u8>,
     dither: bool,
     perceptual_palettes: bool,
-    perceptual_optimization: bool,
 }
 
 impl OptimizedImage {
@@ -52,7 +51,6 @@ impl OptimizedImage {
         palette_size: usize,
         dither: bool,
         perceptual_palettes: bool,
-        perceptual_optimization: bool,
     ) -> Self {
         OptimizedImage {
             width: source.width() as usize,
@@ -63,7 +61,6 @@ impl OptimizedImage {
             palette_map: vec![0; (source.width() * source.height()) as usize],
             dither,
             perceptual_palettes,
-            perceptual_optimization,
         }
     }
 
@@ -355,7 +352,7 @@ impl OptimizedImage {
                 let color_index = self.palette.get_closest_color_index(
                     palette,
                     &target_color_values,
-                    self.perceptual_optimization,
+                    self.perceptual_palettes,
                 );
 
                 self.palette_map[pixel_index] = if original_color.a > 0 {
@@ -625,7 +622,6 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         config.subpalette_size,
         config.dither,
         config.perceptual_palettes,
-        config.perceptual_optimization,
     );
 
     target_image.initialize_tiles();

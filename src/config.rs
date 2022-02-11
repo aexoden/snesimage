@@ -21,11 +21,7 @@ pub struct Config {
     #[clap(short, long)]
     pub dither: bool,
 
-    // Whether to use more expensive CIELAB-based-computations for the initial palette assignment.
+    // Whether to use more expensive CIELAB-based-computations for color comparisons.
     #[clap(long)]
     pub perceptual_palettes: bool,
-
-    // Whether to use more expensive CIELAB-based computations for the optimization phase.
-    #[clap(long)]
-    pub perceptual_optimization: bool,
 }
