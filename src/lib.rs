@@ -4,8 +4,10 @@ use std::io::prelude::*;
 
 use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
+use dssim_core::Dssim;
 use log::info;
 use rand::distributions::{Distribution, Uniform};
+use rgb::FromSlice;
 use scarlet::color::{Color, RGBColor};
 use scarlet::colors::cielabcolor::CIELABColor;
 use scarlet::coord::Coord;
@@ -378,20 +380,12 @@ impl OptimizedImage {
 
     pub fn error(&self) -> f64 {
         let rgba = self.as_rgbaimage();
+        let dssim = Dssim::new();
 
-        rgba.enumerate_pixels()
-            .map(|(x, y, pixel)| {
-                let other = self.original.get_pixel(x, y);
+        let original = dssim.create_image_rgba(self.original.clone().into_raw().as_rgba(), self.original.width() as usize, self.original.height() as usize).unwrap();
+        let current = dssim.create_image_rgba(rgba.clone().into_raw().as_rgba(), rgba.width() as usize, rgba.height() as usize).unwrap();
 
-                if other[3] == 0 {
-                    0.0
-                } else if self.perceptual_optimization {
-                    color_distance_cielab(*pixel, *other)
-                } else {
-                    color_distance_red_mean(*pixel, *other)
-                }
-            })
-            .sum()
+        dssim.compare(&original, current).0.into()
     }
 
     pub fn as_rgbaimage(&self) -> image::RgbaImage {
