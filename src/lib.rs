@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
+use rand::distributions::{Distribution, Uniform};
 use scarlet::color::{Color, RGBColor};
 use scarlet::colors::cielabcolor::CIELABColor;
 use scarlet::coord::Coord;
@@ -160,6 +161,39 @@ impl OptimizedImage {
         }
 
         self.optimize();
+    }
+
+    pub fn optimize_palette_entry_random(&mut self, palette: usize, index: usize) {
+        let original_color = self.palette.palette[palette * self.palette.sub_size + index].clone();
+
+        let mut best_color = original_color.clone();
+        let mut best_error = self.error();
+
+        let mut rng = rand::thread_rng();
+        let die = Uniform::from(0..32);
+
+        for _ in 0..64 {
+            let red = die.sample(&mut rng);
+            let green = die.sample(&mut rng);
+            let blue = die.sample(&mut rng);
+
+            self.palette.palette[palette * self.palette.sub_size + index] = SnesColor::new(red, green, blue);
+            self.optimize();
+
+            let error = self.error();
+
+            if error < best_error {
+                best_error = error;
+                best_color = SnesColor::new(red, green, blue);
+            }
+        }
+
+        if original_color != best_color {
+            info!("Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})", palette, index, original_color.data[0], original_color.data[1], original_color.data[2], best_color.data[0], best_color.data[1], best_color.data[2]);
+        }
+
+        self.palette.palette[palette * self.palette.sub_size + index] = best_color;
+        self.optimize()
     }
 
     pub fn optimize_palette_entry_channel(&mut self, palette: usize, index: usize, channel: usize) {
@@ -580,6 +614,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     let mut phase = Phase::TileAssignment;
     let mut event_pump = sdl_context.event_pump()?;
     let mut last_error = f64::MAX;
+    let mut step = 0;
 
     let mut palette = 0;
     let mut palette_index = 0;
@@ -587,19 +622,26 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
     while !finished {
         if let Phase::Optimization = phase {
-            target_image.optimize_palette_entry_channel(palette, palette_index, channel);
+            let random = step % 5 < 4;
+
+            if random {
+                target_image.optimize_palette_entry_random(palette, palette_index);
+            } else {
+                target_image.optimize_palette_entry_channel(palette, palette_index, channel);
+            }
+
             target_image.optimize();
 
             let error = target_image.error();
 
             if (error - last_error).abs() > f64::EPSILON {
-                info!("Current Error: {}", target_image.error());
+                info!("Current Error: {}", error);
                 last_error = error;
             }
 
             channel += 1;
 
-            if channel == 3 {
+            if channel == 3 || random {
                 channel = 0;
                 palette_index += 1;
 
@@ -609,6 +651,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
                     if palette == config.subpalette_count {
                         palette = 0;
+                        step += 1;
                     }
                 }
             }
