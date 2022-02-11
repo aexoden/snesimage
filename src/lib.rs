@@ -30,8 +30,13 @@ Ideas:
    - Use an actual GUI library so the user doesn't have to deal with unlabeled buttons.
 */
 
+const WIDTH: usize = 256;
+const HEIGHT: usize = 256;
+
 struct OptimizedImage {
-    original: image::RgbaImage,
+    width: usize,
+    height: usize,
+    original: Vec<rgb::RGBA8>,
     tile_palettes: Vec<u8>,
     palette: Palette,
     palette_map: Vec<u8>,
@@ -50,7 +55,9 @@ impl OptimizedImage {
         perceptual_optimization: bool,
     ) -> Self {
         OptimizedImage {
-            original: source.clone(),
+            width: source.width() as usize,
+            height: source.height() as usize,
+            original: source.clone().into_raw().as_rgba().to_vec(),
             tile_palettes: vec![0; 32 * 32],
             palette: Palette::new(palette_count, palette_size),
             palette_map: vec![0; (source.width() * source.height()) as usize],
@@ -61,11 +68,15 @@ impl OptimizedImage {
     }
 
     fn width_in_tiles(&self) -> usize {
-        (self.original.width() / 8) as usize
+        (self.width / 8) as usize
     }
 
     fn height_in_tiles(&self) -> usize {
-        (self.original.height() / 8) as usize
+        (self.height / 8) as usize
+    }
+
+    pub fn get_original_pixel(&self, x: usize, y: usize) -> rgb::RGBA8 {
+        self.original[y * self.width + x]
     }
 
     pub fn initialize_tiles(&mut self) {
@@ -86,21 +97,19 @@ impl OptimizedImage {
 
                 for x in 0..8 {
                     for y in 0..8 {
-                        let color = self
-                            .original
-                            .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+                        let color = self.get_original_pixel(tile_x * 8 + x, tile_y * 8 + y);
 
-                        if color[3] > 0 {
+                        if color.a > 0 {
                             if self.perceptual_palettes {
                                 let lab_color: CIELABColor =
-                                    RGBColor::from((color[0], color[1], color[2])).convert();
+                                    RGBColor::from((color.r, color.g, color.b)).convert();
                                 sum[0] += lab_color.l;
                                 sum[1] += lab_color.a;
                                 sum[2] += lab_color.b;
                             } else {
-                                for i in 0..sum.len() {
-                                    sum[i] += color[i] as f64;
-                                }
+                                sum[0] += color.r as f64;
+                                sum[1] += color.g as f64;
+                                sum[2] += color.b as f64;
                             }
 
                             count += 1;
@@ -179,7 +188,8 @@ impl OptimizedImage {
             let green = die.sample(&mut rng);
             let blue = die.sample(&mut rng);
 
-            self.palette.palette[palette * self.palette.sub_size + index] = SnesColor::new(red, green, blue);
+            self.palette.palette[palette * self.palette.sub_size + index] =
+                SnesColor::new(red, green, blue);
             self.optimize();
 
             let error = self.error();
@@ -191,7 +201,17 @@ impl OptimizedImage {
         }
 
         if original_color != best_color {
-            info!("Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})", palette, index, original_color.data[0], original_color.data[1], original_color.data[2], best_color.data[0], best_color.data[1], best_color.data[2]);
+            info!(
+                "Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})",
+                palette,
+                index,
+                original_color.data[0],
+                original_color.data[1],
+                original_color.data[2],
+                best_color.data[0],
+                best_color.data[1],
+                best_color.data[2]
+            );
         }
 
         self.palette.palette[palette * self.palette.sub_size + index] = best_color;
@@ -218,7 +238,17 @@ impl OptimizedImage {
         if original_color.data[channel] != best_value {
             let mut new_color = original_color.clone();
             new_color.data[channel] = best_value;
-            info!("Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})", palette, index, original_color.data[0], original_color.data[1], original_color.data[2], new_color.data[0], new_color.data[1], new_color.data[2]);
+            info!(
+                "Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})",
+                palette,
+                index,
+                original_color.data[0],
+                original_color.data[1],
+                original_color.data[2],
+                new_color.data[0],
+                new_color.data[1],
+                new_color.data[2]
+            );
         }
 
         self.palette.palette[palette * self.palette.sub_size + index].data[channel] = best_value;
@@ -235,21 +265,19 @@ impl OptimizedImage {
 
                 for x in 0..8 {
                     for y in 0..8 {
-                        let color = self
-                            .original
-                            .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32);
+                        let color = self.get_original_pixel(tile_x * 8 + x, tile_y * 8 + y);
 
-                        if color[3] > 0 {
+                        if color.a > 0 {
                             if self.perceptual_palettes {
                                 let lab_color: CIELABColor =
-                                    RGBColor::from((color[0], color[1], color[2])).convert();
+                                    RGBColor::from((color.r, color.g, color.b)).convert();
 
                                 pixels.push(Euclid([lab_color.l, lab_color.a, lab_color.b]));
                             } else {
                                 pixels.push(Euclid([
-                                    color[0] as f64,
-                                    color[1] as f64,
-                                    color[2] as f64,
+                                    color.r as f64,
+                                    color.g as f64,
+                                    color.b as f64,
                                 ]));
                             }
                         }
@@ -310,19 +338,18 @@ impl OptimizedImage {
         };
 
         let error_multiplier = 0.8;
-        let mut error =
-            vec![vec![0.0; 3]; self.original.width() as usize * self.original.height() as usize];
+        let mut error = vec![vec![0.0; 3]; self.width * self.height];
 
-        for y in 0..self.original.height() {
-            for x in 0..self.original.width() {
-                let pixel_index = (y * self.original.width() + x) as usize;
-                let original_color = self.original.get_pixel(x, y);
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let pixel_index = y * self.width + x;
+                let original_color = self.get_original_pixel(x, y);
                 let palette = self.get_palette_index(x as usize, y as usize);
 
                 let target_color_values = [
-                    original_color[0] as f64 + error[pixel_index][0],
-                    original_color[1] as f64 + error[pixel_index][1],
-                    original_color[2] as f64 + error[pixel_index][2],
+                    original_color.r as f64 + error[pixel_index][0],
+                    original_color.g as f64 + error[pixel_index][1],
+                    original_color.b as f64 + error[pixel_index][2],
                 ];
 
                 let color_index = self.palette.get_closest_color_index(
@@ -331,7 +358,7 @@ impl OptimizedImage {
                     self.perceptual_optimization,
                 );
 
-                self.palette_map[pixel_index] = if original_color[3] > 0 {
+                self.palette_map[pixel_index] = if original_color.a > 0 {
                     color_index as u8
                 } else {
                     0
@@ -340,11 +367,11 @@ impl OptimizedImage {
                 let new_color =
                     self.palette.palette[palette * self.palette.sub_size + color_index].as_rgba();
 
-                let pixel_error = if original_color[3] > 0 {
+                let pixel_error = if original_color.a > 0 {
                     [
-                        target_color_values[0] - new_color[0] as f64,
-                        target_color_values[1] - new_color[1] as f64,
-                        target_color_values[2] - new_color[2] as f64,
+                        target_color_values[0] - new_color.r as f64,
+                        target_color_values[1] - new_color.g as f64,
+                        target_color_values[2] - new_color.b as f64,
                     ]
                 } else {
                     [
@@ -355,21 +382,21 @@ impl OptimizedImage {
                 };
 
                 for (i, value) in pixel_error.iter().enumerate() {
-                    if x + 1 < self.original.width() {
+                    if x + 1 < self.width {
                         error[pixel_index + 1][i] += value * error_multiplier * dither_weights[0];
                     }
 
-                    if y + 1 < self.original.height() {
+                    if y + 1 < self.height {
                         if x > 0 {
-                            error[pixel_index + self.original.width() as usize - 1][i] +=
+                            error[pixel_index + self.width - 1][i] +=
                                 value * error_multiplier * dither_weights[1];
                         }
 
-                        error[pixel_index + self.original.width() as usize][i] +=
+                        error[pixel_index + self.width][i] +=
                             value * error_multiplier * dither_weights[2];
 
-                        if x + 1 < self.original.width() {
-                            error[pixel_index + self.original.width() as usize + 1][i] +=
+                        if x + 1 < self.width {
+                            error[pixel_index + self.width + 1][i] +=
                                 value * error_multiplier * dither_weights[3];
                         }
                     }
@@ -379,29 +406,42 @@ impl OptimizedImage {
     }
 
     pub fn error(&self) -> f64 {
-        let rgba = self.as_rgbaimage();
+        let rgba = self.as_rgba();
         let dssim = Dssim::new();
 
-        let original = dssim.create_image_rgba(self.original.clone().into_raw().as_rgba(), self.original.width() as usize, self.original.height() as usize).unwrap();
-        let current = dssim.create_image_rgba(rgba.clone().into_raw().as_rgba(), rgba.width() as usize, rgba.height() as usize).unwrap();
+        let original = dssim
+            .create_image_rgba(&self.original, self.width, self.height)
+            .unwrap();
+        let current = dssim
+            .create_image_rgba(&rgba, self.width, self.height)
+            .unwrap();
 
         dssim.compare(&original, current).0.into()
     }
 
-    pub fn as_rgbaimage(&self) -> image::RgbaImage {
-        let mut image = image::RgbaImage::new(self.original.width(), self.original.height());
+    pub fn as_rgba(&self) -> Vec<rgb::RGBA8> {
+        let mut image = vec![
+            rgb::RGBA8 {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 0
+            };
+            self.width * self.height
+        ];
 
-        for (x, y, pixel) in self.original.enumerate_pixels() {
-            let tile_x = x / 8;
-            let tile_y = y / 8;
-            let palette_index = self.tile_palettes[(tile_y * 32 + tile_x) as usize];
-            let color_index = palette_index as usize * self.palette.sub_size
-                + self.palette_map[(y * self.original.width() + x) as usize] as usize;
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let tile_x = x / 8;
+                let tile_y = y / 8;
+                let palette_index = self.tile_palettes[tile_y * 32 + tile_x];
+                let color_index = palette_index as usize * self.palette.sub_size
+                    + self.palette_map[y * self.width + x] as usize;
+                let pixel = self.get_original_pixel(x, y);
 
-            if pixel[3] == 0 {
-                image.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
-            } else {
-                image.put_pixel(x, y, self.palette.palette[color_index].as_rgba());
+                if pixel.a > 0 {
+                    image[y * self.width + x] = self.palette.palette[color_index].as_rgba();
+                }
             }
         }
 
@@ -436,13 +476,8 @@ impl OptimizedImage {
 
                 for y in 0..8 {
                     for x in 0..8 {
-                        let index =
-                            (tile_y * 8 + y) * self.original.width() as usize + (tile_x * 8 + x);
-                        if self
-                            .original
-                            .get_pixel((tile_x * 8 + x) as u32, (tile_y * 8 + y) as u32)[3]
-                            == 0
-                        {
+                        let index = (tile_y * 8 + y) * self.width + (tile_x * 8 + x);
+                        if self.get_original_pixel(tile_x * 8 + x, tile_y * 8 + y).a == 0 {
                             tile.push(0);
                         } else {
                             tile.push(self.palette_map[index] + 1);
@@ -478,13 +513,13 @@ impl SnesColor {
         }
     }
 
-    pub fn as_rgba(&self) -> image::Rgba<u8> {
-        image::Rgba([
-            self.data[0] * 8 + self.data[0] / 4,
-            self.data[1] * 8 + self.data[1] / 4,
-            self.data[2] * 8 + self.data[2] / 4,
-            255,
-        ])
+    pub fn as_rgba(&self) -> rgb::RGBA8 {
+        rgb::RGBA8 {
+            r: self.data[0] * 8 + self.data[0] / 4,
+            g: self.data[1] * 8 + self.data[1] / 4,
+            b: self.data[2] * 8 + self.data[2] / 4,
+            a: 255,
+        }
     }
 
     pub fn as_sdl_rgb(&self) -> SDLColor {
@@ -524,12 +559,12 @@ impl Palette {
         let mut best_index = 0;
         let mut best_error = f64::MAX;
 
-        let target_color = image::Rgba([
-            target_color[0].min(255.0).max(0.0).round() as u8,
-            target_color[1].min(255.0).max(0.0).round() as u8,
-            target_color[2].min(255.0).max(0.0).round() as u8,
-            255,
-        ]);
+        let target_color = rgb::RGBA8 {
+            r: target_color[0].min(255.0).max(0.0).round() as u8,
+            g: target_color[1].min(255.0).max(0.0).round() as u8,
+            b: target_color[2].min(255.0).max(0.0).round() as u8,
+            a: 255,
+        };
 
         for index in 0..self.sub_size {
             let color = self.palette[palette * self.sub_size + index].as_rgba();
@@ -579,6 +614,11 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     info!("Using source image: {}", config.source_filename);
 
     let source_image = image::open(config.source_filename)?.to_rgba();
+
+    if source_image.width() as usize != WIDTH && source_image.height() as usize != HEIGHT {
+        return Err("Image size must be 256x256".into());
+    }
+
     let mut target_image = OptimizedImage::new(
         &source_image,
         config.subpalette_count,
@@ -654,14 +694,18 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         canvas.set_draw_color(SDLColor::RGB(0, 0, 0));
         canvas.clear();
         render_image(
-            &source_image,
+            &source_image.clone().into_raw().as_rgba().to_vec(),
+            source_image.width() as usize,
+            source_image.height() as usize,
             &mut canvas,
             0,
             0,
             phase == Phase::TileAssignment,
         );
         render_image(
-            &target_image.as_rgbaimage(),
+            &target_image.as_rgba(),
+            target_image.width,
+            target_image.height,
             &mut canvas,
             256,
             0,
@@ -736,46 +780,52 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_image(
-    image: &image::RgbaImage,
+    image: &Vec<rgb::RGBA8>,
+    width: usize,
+    height: usize,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
     base_x: usize,
     base_y: usize,
     grid: bool,
 ) {
-    for (x, y, pixel) in image.enumerate_pixels() {
-        if !grid || (x % 8 > 0 && y % 8 > 0) {
-            canvas.set_draw_color(SDLColor::RGB(pixel[0], pixel[1], pixel[2]));
-        } else {
-            canvas.set_draw_color(SDLColor::RGB(
-                pixel[0] / 5 * 4,
-                pixel[1] / 5 * 4,
-                pixel[2] / 5 * 4,
-            ));
-        }
+    for y in 0..height {
+        for x in 0..width {
+            let pixel = image[y * width + x];
 
-        canvas
-            .draw_point(Point::new(
-                x as i32 + base_x as i32,
-                y as i32 + base_y as i32,
-            ))
-            .unwrap();
+            if !grid || (x % 8 > 0 && y % 8 > 0) {
+                canvas.set_draw_color(SDLColor::RGB(pixel.r, pixel.g, pixel.b));
+            } else {
+                canvas.set_draw_color(SDLColor::RGB(
+                    pixel.r / 5 * 4,
+                    pixel.g / 5 * 4,
+                    pixel.b / 5 * 4,
+                ));
+            }
+
+            canvas
+                .draw_point(Point::new(
+                    x as i32 + base_x as i32,
+                    y as i32 + base_y as i32,
+                ))
+                .unwrap();
+        }
     }
 }
 
-fn color_distance_red_mean(color1: image::Rgba<u8>, color2: image::Rgba<u8>) -> f64 {
-    let red_mean = (color1[0] as f64 + color2[0] as f64) / 2.0;
-    let r = color1[0] as f64 - color2[0] as f64;
-    let g = color1[1] as f64 - color2[1] as f64;
-    let b = color1[2] as f64 - color2[2] as f64;
+fn color_distance_red_mean(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
+    let red_mean = (color1.r as f64 + color2.r as f64) / 2.0;
+    let r = color1.r as f64 - color2.r as f64;
+    let g = color1.g as f64 - color2.g as f64;
+    let b = color1.b as f64 - color2.b as f64;
 
     ((((512.0 + red_mean) * r * r) / 256.0) + 4.0 * g * g + (((767.0 - red_mean) * b * b) / 256.0))
         .sqrt()
 }
 
 #[cached]
-fn color_distance_cielab(color1: image::Rgba<u8>, color2: image::Rgba<u8>) -> f64 {
-    let color1 = RGBColor::from((color1[0], color1[1], color1[2]));
-    let color2 = RGBColor::from((color2[0], color2[1], color2[2]));
+fn color_distance_cielab(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
+    let color1 = RGBColor::from((color1.r, color1.g, color1.b));
+    let color2 = RGBColor::from((color2.r, color2.g, color2.b));
 
     color1.distance(&color2)
 }
