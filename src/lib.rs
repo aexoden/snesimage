@@ -163,8 +163,9 @@ impl OptimizedImage {
     }
 
     pub fn optimize_palette_entry_channel(&mut self, palette: usize, index: usize, channel: usize) {
-        let mut best_value = 0;
-        let mut best_error = f64::MAX;
+        let original_color = self.palette.palette[palette * self.palette.sub_size + index].clone();
+        let mut best_value = original_color.data[channel];
+        let mut best_error = self.error();
 
         for value in 0..32 {
             self.palette.palette[palette * self.palette.sub_size + index].data[channel] = value;
@@ -176,6 +177,12 @@ impl OptimizedImage {
                 best_error = error;
                 best_value = value;
             }
+        }
+
+        if original_color.data[channel] != best_value {
+            let mut new_color = original_color.clone();
+            new_color.data[channel] = best_value;
+            info!("Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})", palette, index, original_color.data[0], original_color.data[1], original_color.data[2], new_color.data[0], new_color.data[1], new_color.data[2]);
         }
 
         self.palette.palette[palette * self.palette.sub_size + index].data[channel] = best_value;
@@ -431,7 +438,7 @@ impl OptimizedImage {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 struct SnesColor {
     data: Vec<u8>,
 }
