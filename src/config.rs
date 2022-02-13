@@ -24,4 +24,8 @@ pub struct Config {
     // Whether to use more expensive CIELAB-based-computations for color comparisons.
     #[clap(long)]
     pub perceptual_palettes: bool,
+
+    // Enables a special mode that uses only colors similar to those available on the NES.
+    #[clap(long)]
+    pub nes: bool,
 }

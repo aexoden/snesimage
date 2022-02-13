@@ -32,6 +32,7 @@ Ideas:
 
 const WIDTH: usize = 256;
 const HEIGHT: usize = 256;
+const NES_COLOR_COUNT: usize = 56;
 
 struct OptimizedImage {
     width: usize,
@@ -42,6 +43,7 @@ struct OptimizedImage {
     palette_map: Vec<u8>,
     dither: bool,
     perceptual_palettes: bool,
+    nes: bool,
 }
 
 impl OptimizedImage {
@@ -51,6 +53,7 @@ impl OptimizedImage {
         palette_size: usize,
         dither: bool,
         perceptual_palettes: bool,
+        nes: bool,
     ) -> Self {
         OptimizedImage {
             width: source.width() as usize,
@@ -61,6 +64,7 @@ impl OptimizedImage {
             palette_map: vec![0; (source.width() * source.height()) as usize],
             dither,
             perceptual_palettes,
+            nes,
         }
     }
 
@@ -142,17 +146,35 @@ impl OptimizedImage {
                 })
                 .convert();
 
-                SnesColor::new(
-                    rgb_color.int_r() / 8,
-                    rgb_color.int_g() / 8,
-                    rgb_color.int_b() / 8,
-                )
+                if self.nes {
+                    SnesColor::new_nes_only(
+                        rgb_color.int_r() / 8,
+                        rgb_color.int_g() / 8,
+                        rgb_color.int_b() / 8,
+                        self.perceptual_palettes
+                    )
+                } else {
+                    SnesColor::new(
+                        rgb_color.int_r() / 8,
+                        rgb_color.int_g() / 8,
+                        rgb_color.int_b() / 8,
+                    )
+                }
             } else {
-                SnesColor::new(
-                    (mean.0[0] / 8.0).round() as u8,
-                    (mean.0[1] / 8.0).round() as u8,
-                    (mean.0[2] / 8.0).round() as u8,
-                )
+                if self.nes {
+                    SnesColor::new_nes_only(
+                        (mean.0[0] / 8.0).round() as u8,
+                        (mean.0[1] / 8.0).round() as u8,
+                        (mean.0[2] / 8.0).round() as u8,
+                        self.perceptual_palettes
+                    )
+                } else {
+                    SnesColor::new(
+                        (mean.0[0] / 8.0).round() as u8,
+                        (mean.0[1] / 8.0).round() as u8,
+                        (mean.0[2] / 8.0).round() as u8,
+                    )
+                }
             };
 
             info!(
@@ -213,6 +235,44 @@ impl OptimizedImage {
 
         self.palette.palette[palette * self.palette.sub_size + index] = best_color;
         self.optimize()
+    }
+
+    pub fn optimize_palette_entry_nes(&mut self, palette: usize, index: usize) {
+        let original_color = self.palette.palette[palette * self.palette.sub_size + index].clone();
+
+        let mut best_index = 0;
+        let mut best_error = f64::MAX;
+
+        for nes_index in 0..NES_COLOR_COUNT {
+            self.palette.palette[palette * self.palette.sub_size + index] = get_nes_color(nes_index);
+            self.optimize();
+
+            let error = self.error();
+
+            if error < best_error {
+                best_error = error;
+                best_index = nes_index;
+            }
+        }
+
+        let new_color = get_nes_color(best_index);
+
+        if original_color != new_color {
+            info!(
+                "Setting color ({}, {}) from ({}, {}, {}) to ({}, {}, {})",
+                palette,
+                index,
+                original_color.data[0],
+                original_color.data[1],
+                original_color.data[2],
+                new_color.data[0],
+                new_color.data[1],
+                new_color.data[2]
+            );
+        }
+
+        self.palette.palette[palette * self.palette.sub_size + index] = new_color;
+        self.optimize();
     }
 
     pub fn optimize_palette_entry_channel(&mut self, palette: usize, index: usize, channel: usize) {
@@ -294,17 +354,35 @@ impl OptimizedImage {
             .convert();
 
             let color = if self.perceptual_palettes {
-                SnesColor::new(
-                    rgb_color.int_r() / 8,
-                    rgb_color.int_g() / 8,
-                    rgb_color.int_b() / 8,
-                )
+                if self.nes {
+                    SnesColor::new_nes_only(
+                        rgb_color.int_r() / 8,
+                        rgb_color.int_g() / 8,
+                        rgb_color.int_b() / 8,
+                        self.perceptual_palettes
+                    )
+                } else {
+                    SnesColor::new(
+                        rgb_color.int_r() / 8,
+                        rgb_color.int_g() / 8,
+                        rgb_color.int_b() / 8,
+                    )
+                }
             } else {
+                if self.nes {
+                    SnesColor::new_nes_only(
+                        (value.0[0] / 8.0).round() as u8,
+                        (value.0[1] / 8.0).round() as u8,
+                        (value.0[2] / 8.0).round() as u8,
+                        self.perceptual_palettes
+                    )
+                } else {
                 SnesColor::new(
                     (value.0[0] / 8.0).round() as u8,
                     (value.0[1] / 8.0).round() as u8,
                     (value.0[2] / 8.0).round() as u8,
                 )
+            }
             };
 
             self.palette.palette[palette * self.palette.sub_size + index] = color;
@@ -510,6 +588,28 @@ impl SnesColor {
         }
     }
 
+    pub fn new_nes_only(r: u8, g: u8, b: u8, cielab: bool) -> Self {
+        let color = SnesColor::new(r, g, b).as_rgba();
+
+        let mut best_color = get_nes_color(0);
+        let mut best_error = f64::MAX;
+
+        for index in 0..NES_COLOR_COUNT {
+            let error = if cielab {
+                color_distance_cielab(color, get_nes_color(index).as_rgba())
+            } else {
+                color_distance_red_mean(color, get_nes_color(index).as_rgba())
+            };
+
+            if error < best_error {
+                best_color = get_nes_color(index);
+                best_error = error;
+            }
+        }
+
+        best_color
+    }
+
     pub fn as_rgba(&self) -> rgb::RGBA8 {
         rgb::RGBA8 {
             r: self.data[0] * 8 + self.data[0] / 4,
@@ -529,6 +629,68 @@ impl SnesColor {
 
     pub fn as_u16(&self) -> u16 {
         self.data[0] as u16 + ((self.data[1] as u16) << 5) + ((self.data[2] as u16) << 10)
+    }
+}
+
+fn get_nes_color(index: usize) -> SnesColor {
+    match index {
+        0 => SnesColor::new(13, 13, 13),
+        1 => SnesColor::new(0, 2, 16),
+        2 => SnesColor::new(3, 0, 17),
+        3 => SnesColor::new(7, 0, 15),
+        4 => SnesColor::new(10, 0, 10),
+        5 => SnesColor::new(11, 0, 3),
+        6 => SnesColor::new(9, 2, 0),
+        7 => SnesColor::new(7, 3, 0),
+        8 => SnesColor::new(4, 6, 0),
+        9 => SnesColor::new(0, 7, 0),
+        10 => SnesColor::new(0, 8, 0),
+        11 => SnesColor::new(0, 7, 4),
+        12 => SnesColor::new(0, 5, 10),
+        13 => SnesColor::new(0, 0, 0),
+        14 => SnesColor::new(23, 23, 23),
+        15 => SnesColor::new(3, 10, 24),
+        16 => SnesColor::new(9, 6, 28),
+        17 => SnesColor::new(14, 4, 26),
+        18 => SnesColor::new(18, 3, 21),
+        19 => SnesColor::new(19, 5, 11),
+        20 => SnesColor::new(19, 6, 0),
+        21 => SnesColor::new(15, 9, 0),
+        22 => SnesColor::new(11, 12, 0),
+        23 => SnesColor::new(4, 14, 0),
+        24 => SnesColor::new(0, 15, 0),
+        25 => SnesColor::new(0, 14, 8),
+        26 => SnesColor::new(0, 13, 17),
+        27 => SnesColor::new(0, 0, 0),
+        28 => SnesColor::new(31, 31, 31),
+        29 => SnesColor::new(13, 20, 31),
+        30 => SnesColor::new(17, 19, 31),
+        31 => SnesColor::new(22, 16, 31),
+        32 => SnesColor::new(27, 14, 31),
+        33 => SnesColor::new(28, 14, 23),
+        34 => SnesColor::new(28, 17, 13),
+        35 => SnesColor::new(26, 19, 5),
+        36 => SnesColor::new(22, 21, 1),
+        37 => SnesColor::new(15, 24, 2),
+        38 => SnesColor::new(10, 25, 8),
+        39 => SnesColor::new(8, 25, 16),
+        40 => SnesColor::new(8, 24, 24),
+        41 => SnesColor::new(9, 9, 9),
+        42 => SnesColor::new(31, 31, 31),
+        43 => SnesColor::new(25, 29, 31),
+        44 => SnesColor::new(27, 27, 31),
+        45 => SnesColor::new(29, 27, 31),
+        46 => SnesColor::new(31, 26, 31),
+        47 => SnesColor::new(31, 26, 30),
+        48 => SnesColor::new(31, 27, 25),
+        49 => SnesColor::new(31, 28, 22),
+        50 => SnesColor::new(30, 30, 21),
+        51 => SnesColor::new(27, 31, 21),
+        52 => SnesColor::new(25, 31, 23),
+        53 => SnesColor::new(24, 31, 26),
+        54 => SnesColor::new(24, 30, 30),
+        55 => SnesColor::new(23, 24, 23),
+        _ => SnesColor::new(0, 0, 0),
     }
 }
 
@@ -622,6 +784,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         config.subpalette_size,
         config.dither,
         config.perceptual_palettes,
+        config.nes
     );
 
     target_image.initialize_tiles();
@@ -654,7 +817,9 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         if let Phase::Optimization = phase {
             let random = step % 5 < 4;
 
-            if random {
+            if config.nes {
+                target_image.optimize_palette_entry_nes(palette, palette_index);
+            } else if random {
                 target_image.optimize_palette_entry_random(palette, palette_index);
             } else {
                 target_image.optimize_palette_entry_channel(palette, palette_index, channel);

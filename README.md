@@ -26,6 +26,13 @@ The following command-line options are available:
   SSIM and will do its own calculations regardless of this option. This option
   controls initial palette assignment and the choice of which palette entry to
   use for each pixel.
+* `--nes` restricts the available colors to those available on the NES (assuming
+  no color de-emphasis bits or mid-frame trickery). Note that the generated output
+  is still intended for the SNES. The primary purpose is to generate SNES images
+  that look like they could have been for the NES, for whatever reason. As an
+  additional limtation, the system still assumes palettes can be set per 8x8 tile,
+  which is only true on the NES when using certain less common mappers. (To maximize
+  the effect, you would want to use 1-4 subpalettes with 3 colors each.)
 
 The program takes two mandatory arguments: an image to optimize, and the
 filename you wish any JSON output to be written to.
