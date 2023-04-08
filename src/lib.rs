@@ -15,9 +15,9 @@ use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color as SDLColor;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
+use serde_json::json;
 
 extern crate image;
-extern crate json;
 
 pub mod config;
 pub mod util;
@@ -513,7 +513,7 @@ impl OptimizedImage {
         image
     }
 
-    pub fn as_json(&self) -> String {
+    pub fn as_json(&self) -> serde_json::Value {
         let mut palette = vec![];
 
         for palette_index in 0..self.palette.sub_count {
@@ -555,14 +555,11 @@ impl OptimizedImage {
             }
         }
 
-        json::stringify_pretty(
-            json::object! {
-                palette: palette,
-                tiles: tiles,
-                tile_palettes: tile_palettes,
-            },
-            4,
-        )
+        json!({
+            "palette": palette,
+            "tiles": tiles,
+            "tile_palettes": tile_palettes,
+        })
     }
 }
 
@@ -896,7 +893,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
                     if x >= 580 && y >= 232 && x < (580 + 52) && y < (232 + 16) {
                         info!("Writing output to {}", config.target_filename);
                         let mut file = File::create(&config.target_filename)?;
-                        file.write_all(target_image.as_json().as_bytes())?;
+                        file.write_all(target_image.as_json().to_string().as_bytes())?;
                     }
 
                     if x < 512 {
