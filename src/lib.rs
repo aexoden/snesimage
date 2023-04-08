@@ -6,11 +6,9 @@ use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use dssim_core::Dssim;
 use log::info;
+use palette::{ColorDifference, FromColor, IntoColor, Lab, Srgb};
 use rand::distributions::{Distribution, Uniform};
 use rgb::FromSlice;
-use scarlet::color::{Color, RGBColor};
-use scarlet::colors::cielabcolor::CIELABColor;
-use scarlet::coord::Coord;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
@@ -102,15 +100,16 @@ impl OptimizedImage {
 
                         if color.a > 0 {
                             if self.perceptual_palettes {
-                                let lab_color: CIELABColor =
-                                    RGBColor::from((color.r, color.g, color.b)).convert();
+                                let lab_color: Lab = Srgb::<u8>::new(color.r, color.g, color.b)
+                                    .into_format()
+                                    .into_color();
                                 sum[0] += lab_color.l;
                                 sum[1] += lab_color.a;
                                 sum[2] += lab_color.b;
                             } else {
-                                sum[0] += color.r as f64;
-                                sum[1] += color.g as f64;
-                                sum[2] += color.b as f64;
+                                sum[0] += color.r as f32;
+                                sum[1] += color.g as f32;
+                                sum[2] += color.b as f32;
                             }
 
                             count += 1;
@@ -120,9 +119,9 @@ impl OptimizedImage {
 
                 if sum[0] + sum[1] + sum[2] > 0.0 {
                     means.push(Euclid([
-                        sum[0] / count as f64,
-                        sum[1] / count as f64,
-                        sum[2] / count as f64,
+                        sum[0] as f64 / count as f64,
+                        sum[1] as f64 / count as f64,
+                        sum[2] as f64 / count as f64,
                     ]));
 
                     map.push(index);
@@ -139,26 +138,18 @@ impl OptimizedImage {
             }
 
             let color = if self.perceptual_palettes {
-                let rgb_color: RGBColor = CIELABColor::from(Coord {
-                    x: mean.0[0],
-                    y: mean.0[1],
-                    z: mean.0[2],
-                })
-                .convert();
+                let rgb_color: Srgb<u8> =
+                    Srgb::from_format(Srgb::from_color(Lab::new(mean.0[0], mean.0[1], mean.0[2])));
 
                 if self.nes {
                     SnesColor::new_nes_only(
-                        rgb_color.int_r() / 8,
-                        rgb_color.int_g() / 8,
-                        rgb_color.int_b() / 8,
+                        rgb_color.red / 8,
+                        rgb_color.green / 8,
+                        rgb_color.blue / 8,
                         self.perceptual_palettes,
                     )
                 } else {
-                    SnesColor::new(
-                        rgb_color.int_r() / 8,
-                        rgb_color.int_g() / 8,
-                        rgb_color.int_b() / 8,
-                    )
+                    SnesColor::new(rgb_color.red / 8, rgb_color.green / 8, rgb_color.blue / 8)
                 }
             } else {
                 if self.nes {
@@ -327,10 +318,15 @@ impl OptimizedImage {
 
                         if color.a > 0 {
                             if self.perceptual_palettes {
-                                let lab_color: CIELABColor =
-                                    RGBColor::from((color.r, color.g, color.b)).convert();
+                                let lab_color: Lab = Srgb::<u8>::new(color.r, color.g, color.b)
+                                    .into_format()
+                                    .into_color();
 
-                                pixels.push(Euclid([lab_color.l, lab_color.a, lab_color.b]));
+                                pixels.push(Euclid([
+                                    lab_color.l.into(),
+                                    lab_color.a.into(),
+                                    lab_color.b.into(),
+                                ]));
                             } else {
                                 pixels.push(Euclid([
                                     color.r as f64,
@@ -347,27 +343,20 @@ impl OptimizedImage {
         let kmeans = Kmeans::new(&pixels, self.palette.sub_size);
 
         for (index, (value, _)) in kmeans.clusters().iter().enumerate() {
-            let rgb_color: RGBColor = CIELABColor::from(Coord {
-                x: value.0[0],
-                y: value.0[1],
-                z: value.0[2],
-            })
-            .convert();
+            let rgb_color: Srgb<u8> = Srgb::from_format(Srgb::from_color(Lab::new(
+                value.0[0], value.0[1], value.0[2],
+            )));
 
             let color = if self.perceptual_palettes {
                 if self.nes {
                     SnesColor::new_nes_only(
-                        rgb_color.int_r() / 8,
-                        rgb_color.int_g() / 8,
-                        rgb_color.int_b() / 8,
+                        rgb_color.red / 8,
+                        rgb_color.green / 8,
+                        rgb_color.blue / 8,
                         self.perceptual_palettes,
                     )
                 } else {
-                    SnesColor::new(
-                        rgb_color.int_r() / 8,
-                        rgb_color.int_g() / 8,
-                        rgb_color.int_b() / 8,
-                    )
+                    SnesColor::new(rgb_color.red / 8, rgb_color.green / 8, rgb_color.blue / 8)
                 }
             } else {
                 if self.nes {
@@ -986,8 +975,12 @@ fn color_distance_red_mean(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
 
 #[cached]
 fn color_distance_cielab(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
-    let color1 = RGBColor::from((color1.r, color1.g, color1.b));
-    let color2 = RGBColor::from((color2.r, color2.g, color2.b));
+    let color1: Lab = Srgb::new(color1.r, color1.g, color1.b)
+        .into_format()
+        .into_color();
+    let color2: Lab = Srgb::new(color2.r, color2.g, color2.b)
+        .into_format()
+        .into_color();
 
-    color1.distance(&color2)
+    color1.get_color_difference(&color2).into()
 }

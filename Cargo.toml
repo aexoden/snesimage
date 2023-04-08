@@ -17,7 +17,7 @@ fern = { version = "0.6", features = ["colored"] }
 image = "0.24"
 json = "0.12"
 log = "0.4"
+palette = "0.6.1"
 rand = "0.8.5"
 rgb = "0.8"
-scarlet = "1.1"
 sdl2 = "0.35.2"
