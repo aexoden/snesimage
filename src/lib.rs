@@ -17,8 +17,6 @@ use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use serde_json::json;
 
-extern crate image;
-
 pub mod config;
 pub mod util;
 
