@@ -1,22 +1,23 @@
 [package]
 name = "snesimage"
 version = "0.1.0"
-authors = ["Jason Lynch <jason@calindora.com>"]
+authors = ["Jason Lynch <jason@aexoden.com>"]
+description = "Tool to optimize images for use on the SNES"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cached = "0.19.0"
+cached = "0.42"
 chrono = "0.4"
-clap = "3.0.0-beta.1"
+clap = { version = "4.2.1", features = ["derive"] }
 cogset = "0.2"
-dssim-core = "3.1.0"
-fern = { version = "0.5", features = ["colored"] }
-image = "0.23.9"
-json = "0.12.4"
+dssim-core = "3.1"
+fern = { version = "0.6", features = ["colored"] }
+image = "0.24"
+json = "0.12"
 log = "0.4"
-rand = "0.7.3"
-rgb = "0.8.31"
-scarlet = "1.1.0"
-sdl2 = "0.34"
+rand = "0.8.5"
+rgb = "0.8"
+scarlet = "1.1"
+sdl2 = "0.35.2"

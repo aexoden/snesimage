@@ -1,6 +1,6 @@
 use std::process;
 
-use clap::Clap;
+use clap::Parser;
 use log::error;
 
 use snesimage::config;

@@ -151,7 +151,7 @@ impl OptimizedImage {
                         rgb_color.int_r() / 8,
                         rgb_color.int_g() / 8,
                         rgb_color.int_b() / 8,
-                        self.perceptual_palettes
+                        self.perceptual_palettes,
                     )
                 } else {
                     SnesColor::new(
@@ -166,7 +166,7 @@ impl OptimizedImage {
                         (mean.0[0] / 8.0).round() as u8,
                         (mean.0[1] / 8.0).round() as u8,
                         (mean.0[2] / 8.0).round() as u8,
-                        self.perceptual_palettes
+                        self.perceptual_palettes,
                     )
                 } else {
                     SnesColor::new(
@@ -244,7 +244,8 @@ impl OptimizedImage {
         let mut best_error = f64::MAX;
 
         for nes_index in 0..NES_COLOR_COUNT {
-            self.palette.palette[palette * self.palette.sub_size + index] = get_nes_color(nes_index);
+            self.palette.palette[palette * self.palette.sub_size + index] =
+                get_nes_color(nes_index);
             self.optimize();
 
             let error = self.error();
@@ -359,7 +360,7 @@ impl OptimizedImage {
                         rgb_color.int_r() / 8,
                         rgb_color.int_g() / 8,
                         rgb_color.int_b() / 8,
-                        self.perceptual_palettes
+                        self.perceptual_palettes,
                     )
                 } else {
                     SnesColor::new(
@@ -374,15 +375,15 @@ impl OptimizedImage {
                         (value.0[0] / 8.0).round() as u8,
                         (value.0[1] / 8.0).round() as u8,
                         (value.0[2] / 8.0).round() as u8,
-                        self.perceptual_palettes
+                        self.perceptual_palettes,
                     )
                 } else {
-                SnesColor::new(
-                    (value.0[0] / 8.0).round() as u8,
-                    (value.0[1] / 8.0).round() as u8,
-                    (value.0[2] / 8.0).round() as u8,
-                )
-            }
+                    SnesColor::new(
+                        (value.0[0] / 8.0).round() as u8,
+                        (value.0[1] / 8.0).round() as u8,
+                        (value.0[2] / 8.0).round() as u8,
+                    )
+                }
             };
 
             self.palette.palette[palette * self.palette.sub_size + index] = color;
@@ -772,7 +773,7 @@ enum Phase {
 pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
     info!("Using source image: {}", config.source_filename);
 
-    let source_image = image::open(config.source_filename)?.to_rgba();
+    let source_image = image::open(config.source_filename)?.into_rgba8();
 
     if source_image.width() as usize != WIDTH && source_image.height() as usize != HEIGHT {
         return Err("Image size must be 256x256".into());
@@ -784,7 +785,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         config.subpalette_size,
         config.dither,
         config.perceptual_palettes,
-        config.nes
+        config.nes,
     );
 
     target_image.initialize_tiles();

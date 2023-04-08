@@ -1,7 +1,7 @@
-use clap::Clap;
+use clap::Parser;
 
-#[derive(Clap)]
-#[clap(version = "0.1.0", author = "Jason Lynch <jason@calindora.com>")]
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
 pub struct Config {
     // Filename for the image to optimize.
     pub source_filename: String,
@@ -10,22 +10,22 @@ pub struct Config {
     pub target_filename: String,
 
     // Number of separate subpalettes to use.
-    #[clap(short = "c", long, default_value = "1")]
+    #[arg(short = 'c', long, default_value = "1")]
     pub subpalette_count: usize,
 
     // Number of colors within each subpalette (not including the transparent color).
-    #[clap(short = "s", long, default_value = "7")]
+    #[arg(short = 's', long, default_value = "7")]
     pub subpalette_size: usize,
 
     // Whether to dither the output.
-    #[clap(short, long)]
+    #[arg(short, long)]
     pub dither: bool,
 
     // Whether to use more expensive CIELAB-based-computations for color comparisons.
-    #[clap(long)]
+    #[arg(long)]
     pub perceptual_palettes: bool,
 
     // Enables a special mode that uses only colors similar to those available on the NES.
-    #[clap(long)]
+    #[arg(long)]
     pub nes: bool,
 }
