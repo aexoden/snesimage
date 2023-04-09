@@ -4,7 +4,6 @@ use std::io::prelude::*;
 
 use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
-use dssim_core::Dssim;
 use log::info;
 use palette::{ColorDifference, FromColor, IntoColor, Lab, Srgb};
 use rand::distributions::{Distribution, Uniform};
@@ -16,6 +15,7 @@ use sdl2::pixels::Color as SDLColor;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use serde_json::json;
+use ssimulacra2::{compute_frame_ssimulacra2, ColorPrimaries, Rgb, TransferCharacteristic};
 
 pub mod config;
 pub mod util;
@@ -470,16 +470,49 @@ impl OptimizedImage {
 
     pub fn error(&self) -> f64 {
         let rgba = self.as_rgba();
-        let dssim = Dssim::new();
 
-        let original = dssim
-            .create_image_rgba(&self.original, self.width, self.height)
-            .unwrap();
-        let current = dssim
-            .create_image_rgba(&rgba, self.width, self.height)
-            .unwrap();
+        let src_data = self
+            .original
+            .iter()
+            .map(|value| {
+                [
+                    value.r as f32 / 255.0,
+                    value.g as f32 / 255.0,
+                    value.b as f32 / 255.0,
+                ]
+            })
+            .collect::<Vec<_>>();
 
-        dssim.compare(&original, current).0.into()
+        let src = Rgb::new(
+            src_data,
+            self.width,
+            self.height,
+            TransferCharacteristic::SRGB,
+            ColorPrimaries::BT709,
+        )
+        .unwrap();
+
+        let dst_data = rgba
+            .iter()
+            .map(|value| {
+                [
+                    value.r as f32 / 255.0,
+                    value.g as f32 / 255.0,
+                    value.b as f32 / 255.0,
+                ]
+            })
+            .collect::<Vec<_>>();
+
+        let dst = Rgb::new(
+            dst_data,
+            self.width,
+            self.height,
+            TransferCharacteristic::SRGB,
+            ColorPrimaries::BT709,
+        )
+        .unwrap();
+
+        100.0 - compute_frame_ssimulacra2(src, dst).unwrap()
     }
 
     pub fn as_rgba(&self) -> Vec<rgb::RGBA8> {

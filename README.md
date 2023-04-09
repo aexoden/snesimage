@@ -23,7 +23,7 @@ The following command-line options are available:
   This does cache computations and may use up to several gigabytes of RAM, so
   monitoring memory usage is recommended if this option is enabled. However, the
   final result will possibly be better. The error function, however, is based on
-  SSIM and will do its own calculations regardless of this option. This option
+  SSIMULACRA2 and will do its own calculations regardless of this option. This option
   controls initial palette assignment and the choice of which palette entry to
   use for each pixel.
 * `--nes` restricts the available colors to those available on the NES (assuming
