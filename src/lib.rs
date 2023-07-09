@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
-use palette::{ColorDifference, FromColor, IntoColor, Lab, Srgb};
+use palette::{color_difference::Ciede2000, FromColor, IntoColor, Lab, Srgb};
 use rand::distributions::{Distribution, Uniform};
 use rgb::FromSlice;
 use sdl2::event::Event;
@@ -65,11 +65,11 @@ impl OptimizedImage {
     }
 
     fn width_in_tiles(&self) -> usize {
-        (self.width / 8) as usize
+        self.width / 8
     }
 
     fn height_in_tiles(&self) -> usize {
-        (self.height / 8) as usize
+        self.height / 8
     }
 
     pub fn get_original_pixel(&self, x: usize, y: usize) -> rgb::RGBA8 {
@@ -149,21 +149,19 @@ impl OptimizedImage {
                 } else {
                     SnesColor::new(rgb_color.red / 8, rgb_color.green / 8, rgb_color.blue / 8)
                 }
+            } else if self.nes {
+                SnesColor::new_nes_only(
+                    (mean.0[0] / 8.0).round() as u8,
+                    (mean.0[1] / 8.0).round() as u8,
+                    (mean.0[2] / 8.0).round() as u8,
+                    self.perceptual_palettes,
+                )
             } else {
-                if self.nes {
-                    SnesColor::new_nes_only(
-                        (mean.0[0] / 8.0).round() as u8,
-                        (mean.0[1] / 8.0).round() as u8,
-                        (mean.0[2] / 8.0).round() as u8,
-                        self.perceptual_palettes,
-                    )
-                } else {
-                    SnesColor::new(
-                        (mean.0[0] / 8.0).round() as u8,
-                        (mean.0[1] / 8.0).round() as u8,
-                        (mean.0[2] / 8.0).round() as u8,
-                    )
-                }
+                SnesColor::new(
+                    (mean.0[0] / 8.0).round() as u8,
+                    (mean.0[1] / 8.0).round() as u8,
+                    (mean.0[2] / 8.0).round() as u8,
+                )
             };
 
             info!(
@@ -356,21 +354,19 @@ impl OptimizedImage {
                 } else {
                     SnesColor::new(rgb_color.red / 8, rgb_color.green / 8, rgb_color.blue / 8)
                 }
+            } else if self.nes {
+                SnesColor::new_nes_only(
+                    (value.0[0] / 8.0).round() as u8,
+                    (value.0[1] / 8.0).round() as u8,
+                    (value.0[2] / 8.0).round() as u8,
+                    self.perceptual_palettes,
+                )
             } else {
-                if self.nes {
-                    SnesColor::new_nes_only(
-                        (value.0[0] / 8.0).round() as u8,
-                        (value.0[1] / 8.0).round() as u8,
-                        (value.0[2] / 8.0).round() as u8,
-                        self.perceptual_palettes,
-                    )
-                } else {
-                    SnesColor::new(
-                        (value.0[0] / 8.0).round() as u8,
-                        (value.0[1] / 8.0).round() as u8,
-                        (value.0[2] / 8.0).round() as u8,
-                    )
-                }
+                SnesColor::new(
+                    (value.0[0] / 8.0).round() as u8,
+                    (value.0[1] / 8.0).round() as u8,
+                    (value.0[2] / 8.0).round() as u8,
+                )
             };
 
             self.palette.palette[palette * self.palette.sub_size + index] = color;
@@ -407,7 +403,7 @@ impl OptimizedImage {
             for x in 0..self.width {
                 let pixel_index = y * self.width + x;
                 let original_color = self.get_original_pixel(x, y);
-                let palette = self.get_palette_index(x as usize, y as usize);
+                let palette = self.get_palette_index(x, y);
 
                 let target_color_values = [
                     original_color.r as f64 + error[pixel_index][0],
@@ -873,7 +869,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         canvas.set_draw_color(SDLColor::RGB(0, 0, 0));
         canvas.clear();
         render_image(
-            &source_image.clone().into_raw().as_rgba().to_vec(),
+            source_image.clone().into_raw().as_rgba(),
             source_image.width() as usize,
             source_image.height() as usize,
             &mut canvas,
@@ -959,7 +955,7 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_image(
-    image: &Vec<rgb::RGBA8>,
+    image: &[rgb::RGBA8],
     width: usize,
     height: usize,
     canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
@@ -1010,5 +1006,5 @@ fn color_distance_cielab(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
         .into_format()
         .into_color();
 
-    color1.get_color_difference(&color2).into()
+    color1.difference(color2).into()
 }
