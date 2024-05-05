@@ -95,5 +95,9 @@ jobs:
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Update APT database
+        run: sudo apt-get -y update
+      - name: Install system dependencies
+        run: sudo apt-get -y install libsdl2-dev
       - name: Run cargo test
         run: cargo test --all-features
