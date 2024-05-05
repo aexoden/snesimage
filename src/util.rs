@@ -14,7 +14,7 @@ pub fn setup_logger() -> Result<(), fern::InitError> {
                 colors.color(record.level()),
                 record.target(),
                 message
-            ))
+            ));
         })
         .level(log::LevelFilter::Warn)
         .level_for("snesimage", log::LevelFilter::Trace)

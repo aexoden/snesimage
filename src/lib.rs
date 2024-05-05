@@ -1,7 +1,7 @@
-use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 
+use anyhow::{anyhow, Context};
 use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
@@ -76,11 +76,11 @@ impl OptimizedImage {
         self.original[y * self.width + x]
     }
 
-    pub fn initialize_tiles(&mut self) {
+    pub fn initialize_tiles(&mut self) -> anyhow::Result<()> {
         if self.palette.sub_count == 1 {
             self.recalculate_palette(0);
-            self.optimize();
-            return;
+            self.optimize().context("Unable to optimize image")?;
+            return Ok(());
         }
 
         let mut means: Vec<Euclid<[f64; 3]>> = vec![];
@@ -105,9 +105,9 @@ impl OptimizedImage {
                                 sum[1] += lab_color.a;
                                 sum[2] += lab_color.b;
                             } else {
-                                sum[0] += color.r as f32;
-                                sum[1] += color.g as f32;
-                                sum[2] += color.b as f32;
+                                sum[0] += f32::from(color.r);
+                                sum[1] += f32::from(color.g);
+                                sum[2] += f32::from(color.b);
                             }
 
                             count += 1;
@@ -117,9 +117,9 @@ impl OptimizedImage {
 
                 if sum[0] + sum[1] + sum[2] > 0.0 {
                     means.push(Euclid([
-                        sum[0] as f64 / count as f64,
-                        sum[1] as f64 / count as f64,
-                        sum[2] as f64 / count as f64,
+                        f64::from(sum[0]) / f64::from(count),
+                        f64::from(sum[1]) / f64::from(count),
+                        f64::from(sum[2]) / f64::from(count),
                     ]));
 
                     map.push(index);
@@ -132,7 +132,9 @@ impl OptimizedImage {
 
         for (index, (mean, tiles)) in kmeans.clusters().iter().enumerate() {
             for tile_index in tiles {
-                self.tile_palettes[map[*tile_index]] = index as u8;
+                self.tile_palettes[map[*tile_index]] = u8::try_from(index).with_context(|| {
+                    format!("Encountered a palette index {index} that could not fit in a u8")
+                })?;
             }
 
             let color = if self.perceptual_palettes {
@@ -150,6 +152,8 @@ impl OptimizedImage {
                     SnesColor::new(rgb_color.red / 8, rgb_color.green / 8, rgb_color.blue / 8)
                 }
             } else if self.nes {
+                #[allow(clippy::cast_possible_truncation)]
+                #[allow(clippy::cast_sign_loss)]
                 SnesColor::new_nes_only(
                     (mean.0[0] / 8.0).round() as u8,
                     (mean.0[1] / 8.0).round() as u8,
@@ -157,6 +161,8 @@ impl OptimizedImage {
                     self.perceptual_palettes,
                 )
             } else {
+                #[allow(clippy::cast_possible_truncation)]
+                #[allow(clippy::cast_sign_loss)]
                 SnesColor::new(
                     (mean.0[0] / 8.0).round() as u8,
                     (mean.0[1] / 8.0).round() as u8,
@@ -173,15 +179,21 @@ impl OptimizedImage {
             );
 
             for i in 0..self.palette.sub_size {
-                self.palette.palette[index * self.palette.sub_size + i] = color.clone();
+                self.palette.colors[index * self.palette.sub_size + i] = color.clone();
             }
         }
 
-        self.optimize();
+        self.optimize().context("Unable to optimize image")?;
+
+        Ok(())
     }
 
-    pub fn optimize_palette_entry_random(&mut self, palette: usize, index: usize) {
-        let original_color = self.palette.palette[palette * self.palette.sub_size + index].clone();
+    pub fn optimize_palette_entry_random(
+        &mut self,
+        palette: usize,
+        index: usize,
+    ) -> anyhow::Result<()> {
+        let original_color = self.palette.colors[palette * self.palette.sub_size + index].clone();
 
         let mut best_color = original_color.clone();
         let mut best_error = self.error();
@@ -194,9 +206,9 @@ impl OptimizedImage {
             let green = die.sample(&mut rng);
             let blue = die.sample(&mut rng);
 
-            self.palette.palette[palette * self.palette.sub_size + index] =
+            self.palette.colors[palette * self.palette.sub_size + index] =
                 SnesColor::new(red, green, blue);
-            self.optimize();
+            self.optimize().context("Unable to optimize image")?;
 
             let error = self.error();
 
@@ -220,20 +232,25 @@ impl OptimizedImage {
             );
         }
 
-        self.palette.palette[palette * self.palette.sub_size + index] = best_color;
-        self.optimize()
+        self.palette.colors[palette * self.palette.sub_size + index] = best_color;
+        self.optimize().context("Unable to optimize image")?;
+
+        Ok(())
     }
 
-    pub fn optimize_palette_entry_nes(&mut self, palette: usize, index: usize) {
-        let original_color = self.palette.palette[palette * self.palette.sub_size + index].clone();
+    pub fn optimize_palette_entry_nes(
+        &mut self,
+        palette: usize,
+        index: usize,
+    ) -> anyhow::Result<()> {
+        let original_color = self.palette.colors[palette * self.palette.sub_size + index].clone();
 
         let mut best_index = 0;
         let mut best_error = f64::MAX;
 
         for nes_index in 0..NES_COLOR_COUNT {
-            self.palette.palette[palette * self.palette.sub_size + index] =
-                get_nes_color(nes_index);
-            self.optimize();
+            self.palette.colors[palette * self.palette.sub_size + index] = get_nes_color(nes_index);
+            self.optimize().context("Unable to optimize image")?;
 
             let error = self.error();
 
@@ -259,18 +276,25 @@ impl OptimizedImage {
             );
         }
 
-        self.palette.palette[palette * self.palette.sub_size + index] = new_color;
-        self.optimize();
+        self.palette.colors[palette * self.palette.sub_size + index] = new_color;
+        self.optimize().context("Unable to optimize image")?;
+
+        Ok(())
     }
 
-    pub fn optimize_palette_entry_channel(&mut self, palette: usize, index: usize, channel: usize) {
-        let original_color = self.palette.palette[palette * self.palette.sub_size + index].clone();
+    pub fn optimize_palette_entry_channel(
+        &mut self,
+        palette: usize,
+        index: usize,
+        channel: usize,
+    ) -> anyhow::Result<()> {
+        let original_color = self.palette.colors[palette * self.palette.sub_size + index].clone();
         let mut best_value = original_color.data[channel];
         let mut best_error = self.error();
 
         for value in 0..32 {
-            self.palette.palette[palette * self.palette.sub_size + index].data[channel] = value;
-            self.optimize();
+            self.palette.colors[palette * self.palette.sub_size + index].data[channel] = value;
+            self.optimize().context("Unable to optimize image")?;
 
             let error = self.error();
 
@@ -296,8 +320,10 @@ impl OptimizedImage {
             );
         }
 
-        self.palette.palette[palette * self.palette.sub_size + index].data[channel] = best_value;
-        self.optimize();
+        self.palette.colors[palette * self.palette.sub_size + index].data[channel] = best_value;
+        self.optimize().context("Unable to optimize image")?;
+
+        Ok(())
     }
 
     fn recalculate_palette(&mut self, palette: usize) {
@@ -325,9 +351,9 @@ impl OptimizedImage {
                                 ]));
                             } else {
                                 pixels.push(Euclid([
-                                    color.r as f64,
-                                    color.g as f64,
-                                    color.b as f64,
+                                    f64::from(color.r),
+                                    f64::from(color.g),
+                                    f64::from(color.b),
                                 ]));
                             }
                         }
@@ -355,6 +381,8 @@ impl OptimizedImage {
                     SnesColor::new(rgb_color.red / 8, rgb_color.green / 8, rgb_color.blue / 8)
                 }
             } else if self.nes {
+                #[allow(clippy::cast_possible_truncation)]
+                #[allow(clippy::cast_sign_loss)]
                 SnesColor::new_nes_only(
                     (value.0[0] / 8.0).round() as u8,
                     (value.0[1] / 8.0).round() as u8,
@@ -362,6 +390,8 @@ impl OptimizedImage {
                     self.perceptual_palettes,
                 )
             } else {
+                #[allow(clippy::cast_possible_truncation)]
+                #[allow(clippy::cast_sign_loss)]
                 SnesColor::new(
                     (value.0[0] / 8.0).round() as u8,
                     (value.0[1] / 8.0).round() as u8,
@@ -369,16 +399,18 @@ impl OptimizedImage {
                 )
             };
 
-            self.palette.palette[palette * self.palette.sub_size + index] = color;
+            self.palette.colors[palette * self.palette.sub_size + index] = color;
         }
     }
 
-    pub fn recalculate_palettes(&mut self) {
+    pub fn recalculate_palettes(&mut self) -> anyhow::Result<()> {
         for palette in 0..self.palette.sub_count {
             self.recalculate_palette(palette);
         }
 
-        self.optimize();
+        self.optimize().context("Unable to optimize image")?;
+
+        Ok(())
     }
 
     fn get_palette_index(&self, x: usize, y: usize) -> usize {
@@ -389,7 +421,7 @@ impl OptimizedImage {
         self.tile_palettes[tile_index] as usize
     }
 
-    pub fn optimize(&mut self) {
+    pub fn optimize(&mut self) -> anyhow::Result<()> {
         let dither_weights = if self.dither {
             [7.0 / 16.0, 3.0 / 16.0, 5.0 / 16.0, 1.0 / 16.0]
         } else {
@@ -406,9 +438,9 @@ impl OptimizedImage {
                 let palette = self.get_palette_index(x, y);
 
                 let target_color_values = [
-                    original_color.r as f64 + error[pixel_index][0],
-                    original_color.g as f64 + error[pixel_index][1],
-                    original_color.b as f64 + error[pixel_index][2],
+                    f64::from(original_color.r) + error[pixel_index][0],
+                    f64::from(original_color.g) + error[pixel_index][1],
+                    f64::from(original_color.b) + error[pixel_index][2],
                 ];
 
                 let color_index = self.palette.get_closest_color_index(
@@ -418,19 +450,20 @@ impl OptimizedImage {
                 );
 
                 self.palette_map[pixel_index] = if original_color.a > 0 {
-                    color_index as u8
+                    u8::try_from(color_index)
+                        .context("Unexpected color index could not fit in a u8")?
                 } else {
                     0
                 };
 
                 let new_color =
-                    self.palette.palette[palette * self.palette.sub_size + color_index].as_rgba();
+                    self.palette.colors[palette * self.palette.sub_size + color_index].as_rgba();
 
                 let pixel_error = if original_color.a > 0 {
                     [
-                        target_color_values[0] - new_color.r as f64,
-                        target_color_values[1] - new_color.g as f64,
-                        target_color_values[2] - new_color.b as f64,
+                        target_color_values[0] - f64::from(new_color.r),
+                        target_color_values[1] - f64::from(new_color.g),
+                        target_color_values[2] - f64::from(new_color.b),
                     ]
                 } else {
                     [
@@ -462,6 +495,8 @@ impl OptimizedImage {
                 }
             }
         }
+
+        Ok(())
     }
 
     pub fn error(&self) -> f64 {
@@ -472,9 +507,9 @@ impl OptimizedImage {
             .iter()
             .map(|value| {
                 [
-                    value.r as f32 / 255.0,
-                    value.g as f32 / 255.0,
-                    value.b as f32 / 255.0,
+                    f32::from(value.r) / 255.0,
+                    f32::from(value.g) / 255.0,
+                    f32::from(value.b) / 255.0,
                 ]
             })
             .collect::<Vec<_>>();
@@ -492,9 +527,9 @@ impl OptimizedImage {
             .iter()
             .map(|value| {
                 [
-                    value.r as f32 / 255.0,
-                    value.g as f32 / 255.0,
-                    value.b as f32 / 255.0,
+                    f32::from(value.r) / 255.0,
+                    f32::from(value.g) / 255.0,
+                    f32::from(value.b) / 255.0,
                 ]
             })
             .collect::<Vec<_>>();
@@ -532,7 +567,7 @@ impl OptimizedImage {
                 let pixel = self.get_original_pixel(x, y);
 
                 if pixel.a > 0 {
-                    image[y * self.width + x] = self.palette.palette[color_index].as_rgba();
+                    image[y * self.width + x] = self.palette.colors[color_index].as_rgba();
                 }
             }
         }
@@ -549,8 +584,7 @@ impl OptimizedImage {
                     palette.push(0);
                 } else if i <= self.palette.sub_size {
                     palette.push(
-                        self.palette.palette[palette_index * self.palette.sub_size + i - 1]
-                            .as_u16(),
+                        self.palette.colors[palette_index * self.palette.sub_size + i - 1].as_u16(),
                     );
                 } else {
                     palette.push(0);
@@ -642,10 +676,11 @@ impl SnesColor {
     }
 
     pub fn as_u16(&self) -> u16 {
-        self.data[0] as u16 + ((self.data[1] as u16) << 5) + ((self.data[2] as u16) << 10)
+        u16::from(self.data[0]) + ((u16::from(self.data[1])) << 5) + (u16::from(self.data[2]) << 10)
     }
 }
 
+#[allow(clippy::match_same_arms)]
 fn get_nes_color(index: usize) -> SnesColor {
     match index {
         0 => SnesColor::new(13, 13, 13),
@@ -709,7 +744,7 @@ fn get_nes_color(index: usize) -> SnesColor {
 }
 
 struct Palette {
-    palette: Vec<SnesColor>,
+    colors: Vec<SnesColor>,
     sub_size: usize,
     sub_count: usize,
 }
@@ -717,7 +752,7 @@ struct Palette {
 impl Palette {
     pub fn new(sub_count: usize, sub_size: usize) -> Self {
         Palette {
-            palette: vec![SnesColor::new(0, 0, 0); sub_count * sub_size],
+            colors: vec![SnesColor::new(0, 0, 0); sub_count * sub_size],
             sub_count,
             sub_size,
         }
@@ -732,6 +767,8 @@ impl Palette {
         let mut best_index = 0;
         let mut best_error = f64::MAX;
 
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
         let target_color = rgb::RGBA8 {
             r: target_color[0].min(255.0).max(0.0).round() as u8,
             g: target_color[1].min(255.0).max(0.0).round() as u8,
@@ -740,7 +777,7 @@ impl Palette {
         };
 
         for index in 0..self.sub_size {
-            let color = self.palette[palette * self.sub_size + index].as_rgba();
+            let color = self.colors[palette * self.sub_size + index].as_rgba();
             let error = if cielab {
                 color_distance_cielab(color, target_color)
             } else {
@@ -761,18 +798,29 @@ impl Palette {
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
         base_x: usize,
         base_y: usize,
-    ) {
+    ) -> anyhow::Result<()> {
         for palette_index in 0..self.sub_count {
             for color_index in 0..self.sub_size {
                 let x = base_x + (color_index + 1) * 8;
                 let y = base_y + palette_index * 8;
-                let color = &self.palette[palette_index * self.sub_size + color_index];
+                let color = &self.colors[palette_index * self.sub_size + color_index];
                 canvas.set_draw_color(color.as_sdl_rgb());
                 canvas
-                    .fill_rect(Rect::new(x as i32, y as i32, 8, 8))
+                    .fill_rect(Rect::new(
+                        i32::try_from(x).with_context(|| {
+                            format!("Unexpected out of range X coordinate: {x}")
+                        })?,
+                        i32::try_from(y).with_context(|| {
+                            format!("Unexpected out of range Y coordinate: {y}")
+                        })?,
+                        8,
+                        8,
+                    ))
                     .unwrap();
             }
         }
+
+        Ok(())
     }
 }
 
@@ -783,13 +831,14 @@ enum Phase {
     Optimization,
 }
 
-pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
+#[allow(clippy::too_many_lines)]
+pub fn run(config: config::Config) -> anyhow::Result<()> {
     info!("Using source image: {}", config.source_filename);
 
     let source_image = image::open(config.source_filename)?.into_rgba8();
 
     if source_image.width() as usize != WIDTH && source_image.height() as usize != HEIGHT {
-        return Err("Image size must be 256x256".into());
+        return Err(anyhow!("Image size must be 256x256"));
     }
 
     let mut target_image = OptimizedImage::new(
@@ -801,10 +850,18 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
         config.nes,
     );
 
-    target_image.initialize_tiles();
+    target_image
+        .initialize_tiles()
+        .context("Unable to initialize tiles")?;
 
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
+    let sdl_context = sdl2::init()
+        .map_err(sdl2::IntegerOrSdlError::SdlError)
+        .context("Unable to initialize SDL2")?;
+
+    let video_subsystem = sdl_context
+        .video()
+        .map_err(sdl2::IntegerOrSdlError::SdlError)
+        .context("Unable to initialize SDL2 video context")?;
 
     let window = video_subsystem
         .window("snesimage", 640, 256)
@@ -819,7 +876,10 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
 
     let mut finished = false;
     let mut phase = Phase::TileAssignment;
-    let mut event_pump = sdl_context.event_pump()?;
+    let mut event_pump = sdl_context
+        .event_pump()
+        .map_err(sdl2::IntegerOrSdlError::SdlError)
+        .context("Unable to retrieve SDL2 event pump")?;
     let mut last_error = f64::MAX;
     let mut step = 0;
 
@@ -832,14 +892,22 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
             let random = step % 5 < 4;
 
             if config.nes {
-                target_image.optimize_palette_entry_nes(palette, palette_index);
+                target_image
+                    .optimize_palette_entry_nes(palette, palette_index)
+                    .context("Unable to optimize palette with the NES method")?;
             } else if random {
-                target_image.optimize_palette_entry_random(palette, palette_index);
+                target_image
+                    .optimize_palette_entry_random(palette, palette_index)
+                    .context("Unable to optimize palette with the random method")?;
             } else {
-                target_image.optimize_palette_entry_channel(palette, palette_index, channel);
+                target_image
+                    .optimize_palette_entry_channel(palette, palette_index, channel)
+                    .context("Unable to optimize palette with the channel method")?;
             }
 
-            target_image.optimize();
+            target_image
+                .optimize()
+                .context("Unable to optimize image")?;
 
             let error = target_image.error();
 
@@ -876,7 +944,8 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
             0,
             0,
             phase == Phase::TileAssignment,
-        );
+        )
+        .context("Unable to render source image")?;
         render_image(
             &target_image.as_rgba(),
             target_image.width,
@@ -885,14 +954,24 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
             256,
             0,
             phase == Phase::TileAssignment,
-        );
-        target_image.palette.render(&mut canvas, 512, 0);
+        )
+        .context("Unable to render target image")?;
+        target_image
+            .palette
+            .render(&mut canvas, 512, 0)
+            .context("Unable to render image to canvas")?;
 
         canvas.set_draw_color(SDLColor::RGB(0, 128, 0));
-        canvas.fill_rect(Rect::new(520, 232, 52, 16))?;
+        canvas
+            .fill_rect(Rect::new(520, 232, 52, 16))
+            .map_err(sdl2::IntegerOrSdlError::SdlError)
+            .context("Unable to draw button to canvas")?;
 
         canvas.set_draw_color(SDLColor::RGB(0, 0, 255));
-        canvas.fill_rect(Rect::new(580, 232, 52, 16))?;
+        canvas
+            .fill_rect(Rect::new(580, 232, 52, 16))
+            .map_err(sdl2::IntegerOrSdlError::SdlError)
+            .context("Unable to draw button to canvas")?;
 
         for event in event_pump.poll_iter() {
             match event {
@@ -907,13 +986,15 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
                             Phase::TileAssignment => {
                                 info!("Generating initial palettes");
                                 phase = Phase::Clustering;
-                                target_image.recalculate_palettes();
+                                target_image
+                                    .recalculate_palettes()
+                                    .context("Unable to recalculate palettes")?;
                             }
                             Phase::Clustering => {
                                 info!("Beginning optimization");
                                 phase = Phase::Optimization;
                             }
-                            _ => {}
+                            Phase::Optimization => {}
                         }
                     }
 
@@ -926,14 +1007,21 @@ pub fn run(config: config::Config) -> Result<(), Box<dyn Error>> {
                     if x < 512 {
                         let tile_x = x % 256 / 8;
                         let tile_y = y / 8;
-                        let index =
-                            tile_y as usize * target_image.width_in_tiles() + tile_x as usize;
+                        let index = usize::try_from(tile_y)
+                            .with_context(|| format!("Unexpected vertical tile size: {tile_y}"))?
+                            * target_image.width_in_tiles()
+                            + usize::try_from(tile_x).with_context(|| {
+                                format!("Unexpected horizontal tile size: {tile_x}")
+                            })?;
 
-                        target_image.tile_palettes[index] =
-                            (target_image.tile_palettes[index] + 1) % config.subpalette_count as u8;
+                        target_image.tile_palettes[index] = (target_image.tile_palettes[index] + 1)
+                            % u8::try_from(config.subpalette_count)
+                                .context("Unexpected subpalette count")?;
 
                         if phase != Phase::TileAssignment {
-                            target_image.recalculate_palettes();
+                            target_image
+                                .recalculate_palettes()
+                                .context("Unable to recalculate palettes")?;
                         }
                     }
                 }
@@ -962,7 +1050,7 @@ fn render_image(
     base_x: usize,
     base_y: usize,
     grid: bool,
-) {
+) -> anyhow::Result<()> {
     for y in 0..height {
         for x in 0..width {
             let pixel = image[y * width + x];
@@ -979,19 +1067,25 @@ fn render_image(
 
             canvas
                 .draw_point(Point::new(
-                    x as i32 + base_x as i32,
-                    y as i32 + base_y as i32,
+                    i32::try_from(x).with_context(|| format!("Unexpected X coordinate: {x}"))?
+                        + i32::try_from(base_x)
+                            .with_context(|| format!("Unexpected base X coordinate: {base_x}"))?,
+                    i32::try_from(y).with_context(|| format!("Unexpected Y coordinate: {y}"))?
+                        + i32::try_from(base_y)
+                            .with_context(|| format!("Unexpected base Y coordinate: {base_y}"))?,
                 ))
                 .unwrap();
         }
     }
+
+    Ok(())
 }
 
 fn color_distance_red_mean(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
-    let red_mean = (color1.r as f64 + color2.r as f64) / 2.0;
-    let r = color1.r as f64 - color2.r as f64;
-    let g = color1.g as f64 - color2.g as f64;
-    let b = color1.b as f64 - color2.b as f64;
+    let red_mean = (f64::from(color1.r) + f64::from(color2.r)) / 2.0;
+    let r = f64::from(color1.r) - f64::from(color2.r);
+    let g = f64::from(color1.g) - f64::from(color2.g);
+    let b = f64::from(color1.b) - f64::from(color2.b);
 
     ((((512.0 + red_mean) * r * r) / 256.0) + 4.0 * g * g + (((767.0 - red_mean) * b * b) / 256.0))
         .sqrt()

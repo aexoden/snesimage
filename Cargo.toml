@@ -2,10 +2,25 @@
 name = "snesimage"
 version = "0.1.0"
 authors = ["Jason Lynch <jason@aexoden.com>"]
-description = "Tool to optimize images for use on the SNES"
 edition = "2021"
+description = "Tool to optimize images for use on the SNES"
+repository = "https://github.com/aexoden/snesimage"
+license = "MIT OR Apache-2.0"
+keywords = ["graphics", "retro"]
+categories = ["multimedia::images"]
+
+[lints.rust]
+future_incompatible = { level = "warn", priority = -1 }
+let_underscore = { level = "warn", priority = -1 }
+
+[lints.clippy]
+cargo = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+multiple_crate_versions = "allow"
 
 [dependencies]
+anyhow = { version = "1.0.82", features = ["backtrace"] }
 cached = "0.51.1"
 chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
 clap = { version = "4.5.4", features = ["derive"] }
