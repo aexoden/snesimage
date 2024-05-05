@@ -88,7 +88,7 @@ impl OptimizedImage {
 
         for tile_x in 0..self.width_in_tiles() {
             for tile_y in 0..self.height_in_tiles() {
-                let mut sum = vec![0.0; 3];
+                let mut sum = [0.0; 3];
                 let mut count = 0;
                 let index = tile_y * self.width_in_tiles() + tile_x;
 
