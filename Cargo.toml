@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 cached = "0.46.0"
 chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
-clap = { version = "4.2.1", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive"] }
 cogset = "0.2"
 fern = { version = "0.6", features = ["colored"] }
 image = "0.24.6"
