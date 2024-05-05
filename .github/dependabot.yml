@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 25
+    allow:
+    - dependency-type: "all"
+    groups:
+      patch-versions:
+        update-types:
+        - "patch"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
