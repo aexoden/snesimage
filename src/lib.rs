@@ -770,9 +770,9 @@ impl Palette {
         #[allow(clippy::cast_possible_truncation)]
         #[allow(clippy::cast_sign_loss)]
         let target_color = rgb::RGBA8 {
-            r: target_color[0].min(255.0).max(0.0).round() as u8,
-            g: target_color[1].min(255.0).max(0.0).round() as u8,
-            b: target_color[2].min(255.0).max(0.0).round() as u8,
+            r: target_color[0].clamp(0.0, 255.0).round() as u8,
+            g: target_color[1].clamp(0.0, 255.0).round() as u8,
+            b: target_color[2].clamp(0.0, 255.0).round() as u8,
             a: 255,
         };
 
