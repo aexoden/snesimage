@@ -21,7 +21,7 @@ multiple_crate_versions = "allow"
 
 [dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-cached = "0.53.0"
+cached = "0.53.1"
 chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
 clap = { version = "4.5.9", features = ["derive"] }
 cogset = "0.2"
