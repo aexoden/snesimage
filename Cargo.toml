@@ -26,11 +26,11 @@ chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
 clap = { version = "4.5.20", features = ["derive"] }
 cogset = "0.2"
 fern = { version = "0.6", features = ["colored"] }
-image = "0.25.2"
+image = "0.25.4"
 log = "0.4"
 palette = "0.7.6"
 rand = "0.8.5"
 rgb = "0.8"
 sdl2 = "0.37.0"
-serde_json = "1.0.128"
+serde_json = "1.0.129"
 ssimulacra2 = "0.5.0"
