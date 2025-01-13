@@ -23,7 +23,7 @@ multiple_crate_versions = "allow"
 anyhow = { version = "1.0.95", features = ["backtrace"] }
 cached = "0.54.0"
 chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
-clap = { version = "4.5.23", features = ["derive"] }
+clap = { version = "4.5.26", features = ["derive"] }
 cogset = "0.2"
 fern = { version = "0.7", features = ["colored"] }
 image = "0.25.5"
@@ -32,5 +32,5 @@ palette = "0.7.6"
 rand = "0.8.5"
 rgb = "0.8"
 sdl2 = "0.37.0"
-serde_json = "1.0.134"
+serde_json = "1.0.135"
 ssimulacra2 = "0.5.1"
