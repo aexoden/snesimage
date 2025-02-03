@@ -6,7 +6,7 @@ use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
 use palette::{color_difference::Ciede2000, FromColor, IntoColor, Lab, Srgb};
-use rand::distributions::{Distribution, Uniform};
+use rand::distr::{Distribution, Uniform};
 use rgb::FromSlice;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -198,8 +198,9 @@ impl OptimizedImage {
         let mut best_color = original_color.clone();
         let mut best_error = self.error();
 
-        let mut rng = rand::thread_rng();
-        let die = Uniform::from(0..32);
+        let mut rng = rand::rng();
+        let die = Uniform::try_from(0..32)
+            .context("Unable to create random number generator from range")?;
 
         for _ in 0..64 {
             let red = die.sample(&mut rng);
