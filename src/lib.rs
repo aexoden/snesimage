@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::io::prelude::*;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use cached::proc_macro::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
-use palette::{color_difference::Ciede2000, FromColor, IntoColor, Lab, Srgb};
+use palette::{FromColor, IntoColor, Lab, Srgb, color_difference::Ciede2000};
 use rand::distr::{Distribution, Uniform};
 use rgb::FromSlice;
 use sdl2::event::Event;
@@ -15,7 +15,7 @@ use sdl2::pixels::Color as SDLColor;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use serde_json::json;
-use ssimulacra2::{compute_frame_ssimulacra2, ColorPrimaries, Rgb, TransferCharacteristic};
+use ssimulacra2::{ColorPrimaries, Rgb, TransferCharacteristic, compute_frame_ssimulacra2};
 
 pub mod config;
 pub mod util;

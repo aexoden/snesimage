@@ -2,7 +2,7 @@
 name = "snesimage"
 version = "0.1.0"
 authors = ["Jason Lynch <jason@aexoden.com>"]
-edition = "2021"
+edition = "2024"
 description = "Tool to optimize images for use on the SNES"
 repository = "https://github.com/aexoden/snesimage"
 license = "MIT OR Apache-2.0"
