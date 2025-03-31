@@ -23,10 +23,10 @@ multiple_crate_versions = "allow"
 anyhow = { version = "1.0.97", features = ["backtrace"] }
 cached = "0.55.1"
 chrono = { version = "0.4.40", default-features = false, features = ["clock"] }
-clap = { version = "4.5.31", features = ["derive"] }
+clap = { version = "4.5.34", features = ["derive"] }
 cogset = "0.2"
 fern = { version = "0.7", features = ["colored"] }
-image = "0.25.5"
+image = "0.25.6"
 log = "0.4"
 palette = "0.7.6"
 rand = "0.9.0"
