@@ -913,7 +913,7 @@ pub fn run(config: config::Config) -> anyhow::Result<()> {
             let error = target_image.error();
 
             if (error - last_error).abs() > f64::EPSILON {
-                info!("Current Error: {}", error);
+                info!("Current Error: {error}");
                 last_error = error;
             }
 

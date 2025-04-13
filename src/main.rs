@@ -14,7 +14,7 @@ fn main() {
     let config = config::Config::parse();
 
     snesimage::run(config).unwrap_or_else(|err| {
-        error!("Error running application: {}", err);
+        error!("Error running application: {err}");
         process::exit(1)
     });
 }
