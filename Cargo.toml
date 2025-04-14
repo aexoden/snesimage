@@ -20,7 +20,7 @@ missing_errors_doc = "allow"
 multiple_crate_versions = "allow"
 
 [dependencies]
-anyhow = { version = "1.0.97", features = ["backtrace"] }
+anyhow = { version = "1.0.98", features = ["backtrace"] }
 cached = "0.55.1"
 chrono = { version = "0.4.40", default-features = false, features = ["clock"] }
 clap = { version = "4.5.36", features = ["derive"] }
