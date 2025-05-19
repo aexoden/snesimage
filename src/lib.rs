@@ -1083,7 +1083,7 @@ fn render_image(
 }
 
 fn color_distance_red_mean(color1: rgb::RGBA8, color2: rgb::RGBA8) -> f64 {
-    let red_mean = (f64::from(color1.r) + f64::from(color2.r)) / 2.0;
+    let red_mean = f64::midpoint(f64::from(color1.r), f64::from(color2.r));
     let r = f64::from(color1.r) - f64::from(color2.r);
     let g = f64::from(color1.g) - f64::from(color2.g);
     let b = f64::from(color1.b) - f64::from(color2.b);
