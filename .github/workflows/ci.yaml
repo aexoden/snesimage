@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@a0d2d53632934ae004f878c840055956d9f741b0 # v0.14.0
+
+      - name: Format Rust code
+        run: devbox run -- cargo fmt --all -- --check
+
+      - name: Lint Rust code
+        run: devbox run -- cargo clippy --workspace -- -D warnings
+
+      - name: Run Rust tests
+        run: devbox run -- cargo test --workspace --all-features
+
+      - name: Check Rust dependencies for security vulnerabilities
+        run: devbox run -- cargo deny check
