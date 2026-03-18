@@ -196,7 +196,7 @@ impl OptimizedImage {
         let original_color = self.palette.colors[palette * self.palette.sub_size + index].clone();
 
         let mut best_color = original_color.clone();
-        let mut best_error = self.error();
+        let mut best_error = self.error()?;
 
         let mut rng = rand::rng();
         let die = Uniform::try_from(0..32)
@@ -211,7 +211,7 @@ impl OptimizedImage {
                 SnesColor::new(red, green, blue);
             self.optimize().context("Unable to optimize image")?;
 
-            let error = self.error();
+            let error = self.error()?;
 
             if error < best_error {
                 best_error = error;
@@ -253,7 +253,7 @@ impl OptimizedImage {
             self.palette.colors[palette * self.palette.sub_size + index] = get_nes_color(nes_index);
             self.optimize().context("Unable to optimize image")?;
 
-            let error = self.error();
+            let error = self.error()?;
 
             if error < best_error {
                 best_error = error;
@@ -291,13 +291,13 @@ impl OptimizedImage {
     ) -> anyhow::Result<()> {
         let original_color = self.palette.colors[palette * self.palette.sub_size + index].clone();
         let mut best_value = original_color.data[channel];
-        let mut best_error = self.error();
+        let mut best_error = self.error()?;
 
         for value in 0..32 {
             self.palette.colors[palette * self.palette.sub_size + index].data[channel] = value;
             self.optimize().context("Unable to optimize image")?;
 
-            let error = self.error();
+            let error = self.error()?;
 
             if error < best_error {
                 best_error = error;
@@ -500,7 +500,7 @@ impl OptimizedImage {
         Ok(())
     }
 
-    pub fn error(&self) -> f64 {
+    pub fn error(&self) -> anyhow::Result<f64> {
         let rgba = self.as_rgba();
 
         let src_data = self
@@ -522,7 +522,7 @@ impl OptimizedImage {
             TransferCharacteristic::SRGB,
             ColorPrimaries::BT709,
         )
-        .unwrap();
+        .context("Failed to create source RGB image")?;
 
         let dst_data = rgba
             .iter()
@@ -542,9 +542,9 @@ impl OptimizedImage {
             TransferCharacteristic::SRGB,
             ColorPrimaries::BT709,
         )
-        .unwrap();
+        .context("Failed to create destination RGB image")?;
 
-        100.0 - compute_frame_ssimulacra2(src, dst).unwrap()
+        Ok(100.0 - compute_frame_ssimulacra2(src, dst).context("Failed to compute SSIMULACRA2")?)
     }
 
     pub fn as_rgba(&self) -> Vec<rgb::RGBA8> {
@@ -806,18 +806,15 @@ impl Palette {
                 let y = base_y + palette_index * 8;
                 let color = &self.colors[palette_index * self.sub_size + color_index];
                 canvas.set_draw_color(color.as_sdl_rgb());
-                canvas
-                    .fill_rect(Rect::new(
-                        i32::try_from(x).with_context(|| {
-                            format!("Unexpected out of range X coordinate: {x}")
-                        })?,
-                        i32::try_from(y).with_context(|| {
-                            format!("Unexpected out of range Y coordinate: {y}")
-                        })?,
-                        8,
-                        8,
-                    ))
-                    .unwrap();
+
+                let _unused = canvas.fill_rect(Rect::new(
+                    i32::try_from(x)
+                        .with_context(|| format!("Unexpected out of range X coordinate: {x}"))?,
+                    i32::try_from(y)
+                        .with_context(|| format!("Unexpected out of range Y coordinate: {y}"))?,
+                    8,
+                    8,
+                ));
             }
         }
 
@@ -910,7 +907,7 @@ pub fn run(config: config::Config) -> anyhow::Result<()> {
                 .optimize()
                 .context("Unable to optimize image")?;
 
-            let error = target_image.error();
+            let error = target_image.error()?;
 
             if (error - last_error).abs() > f64::EPSILON {
                 info!("Current Error: {error}");
@@ -1066,16 +1063,14 @@ fn render_image(
                 ));
             }
 
-            canvas
-                .draw_point(Point::new(
-                    i32::try_from(x).with_context(|| format!("Unexpected X coordinate: {x}"))?
-                        + i32::try_from(base_x)
-                            .with_context(|| format!("Unexpected base X coordinate: {base_x}"))?,
-                    i32::try_from(y).with_context(|| format!("Unexpected Y coordinate: {y}"))?
-                        + i32::try_from(base_y)
-                            .with_context(|| format!("Unexpected base Y coordinate: {base_y}"))?,
-                ))
-                .unwrap();
+            let _unused = canvas.draw_point(Point::new(
+                i32::try_from(x).with_context(|| format!("Unexpected X coordinate: {x}"))?
+                    + i32::try_from(base_x)
+                        .with_context(|| format!("Unexpected base X coordinate: {base_x}"))?,
+                i32::try_from(y).with_context(|| format!("Unexpected Y coordinate: {y}"))?
+                    + i32::try_from(base_y)
+                        .with_context(|| format!("Unexpected base Y coordinate: {base_y}"))?,
+            ));
         }
     }
 

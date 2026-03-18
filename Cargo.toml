@@ -1,23 +1,13 @@
 [package]
 name = "snesimage"
 version = "0.1.0"
-authors = ["Jason Lynch <jason@aexoden.com>"]
 edition = "2024"
+rust-version = "1.93"
 description = "Tool to optimize images for use on the SNES"
 repository = "https://github.com/aexoden/snesimage"
 license = "MIT OR Apache-2.0"
 keywords = ["graphics", "retro"]
 categories = ["multimedia::images"]
-
-[lints.rust]
-future_incompatible = { level = "warn", priority = -1 }
-let_underscore = { level = "warn", priority = -1 }
-
-[lints.clippy]
-cargo = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
-missing_errors_doc = "allow"
-multiple_crate_versions = "allow"
 
 [dependencies]
 anyhow = { version = "1.0.100", features = ["backtrace"] }
@@ -34,3 +24,15 @@ rgb = "0.8"
 sdl2 = "0.38.0"
 serde_json = "1.0.145"
 ssimulacra2 = "0.5.1"
+
+[lints.clippy]
+cargo = { level = "warn", priority = -1 }
+expect_used = "warn"
+missing_errors_doc = "allow"
+multiple_crate_versions = "allow"
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+
+[lints.rust]
+future_incompatible = { level = "warn", priority = -1 }
+let_underscore = { level = "warn", priority = -1 }
