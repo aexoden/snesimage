@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
   "packages": {
-    "cargo":      "1.93.0",
+    "cargo":      "1.94.0",
     "cargo-deny": "0.19.0",
     "clippy":     "1.93.0",
     "pre-commit": "4.5.1",
