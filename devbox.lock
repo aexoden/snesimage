@@ -370,51 +370,51 @@
         }
       }
     },
-    "rustfmt@1.93.0": {
-      "last_modified": "2026-02-23T15:40:43Z",
-      "resolved": "github:NixOS/nixpkgs/80d901ec0377e19ac3f7bb8c035201e2e098cc97#rustfmt",
+    "rustfmt@1.94.0": {
+      "last_modified": "2026-03-21T07:29:51Z",
+      "resolved": "github:NixOS/nixpkgs/09061f748ee21f68a089cd5d91ec1859cd93d0be#rustfmt",
       "source": "devbox-search",
-      "version": "1.93.0",
+      "version": "1.94.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/9aq18v5y6ss8yrlfzqwrsq8j0ilm7mgp-rustfmt-1.93.0",
+              "path": "/nix/store/fwgjpxfnwrbymfab8yd6hp9nws2b8jpn-rustfmt-1.94.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/9aq18v5y6ss8yrlfzqwrsq8j0ilm7mgp-rustfmt-1.93.0"
+          "store_path": "/nix/store/fwgjpxfnwrbymfab8yd6hp9nws2b8jpn-rustfmt-1.94.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/4aq1qa0xy4z06a2bdn5l6plhj28a0rq5-rustfmt-1.93.0",
+              "path": "/nix/store/bgk91x9ms68l15lggd89n47k8ygrf24s-rustfmt-1.94.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/4aq1qa0xy4z06a2bdn5l6plhj28a0rq5-rustfmt-1.93.0"
+          "store_path": "/nix/store/bgk91x9ms68l15lggd89n47k8ygrf24s-rustfmt-1.94.0"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/1ql1g2a253djjz10x019wii04d2dijjr-rustfmt-1.93.0",
+              "path": "/nix/store/0a0y8nv5z6lfv0krhhqdri1g8k0qwsz3-rustfmt-1.94.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/1ql1g2a253djjz10x019wii04d2dijjr-rustfmt-1.93.0"
+          "store_path": "/nix/store/0a0y8nv5z6lfv0krhhqdri1g8k0qwsz3-rustfmt-1.94.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/yb62fm7wf3ysn5rnfj2r03snmk9pwwa2-rustfmt-1.93.0",
+              "path": "/nix/store/c96dfsfw69vss3qr9k5z70sg3zbmvp68-rustfmt-1.94.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/yb62fm7wf3ysn5rnfj2r03snmk9pwwa2-rustfmt-1.93.0"
+          "store_path": "/nix/store/c96dfsfw69vss3qr9k5z70sg3zbmvp68-rustfmt-1.94.0"
         }
       }
     }
