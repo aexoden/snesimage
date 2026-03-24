@@ -161,59 +161,59 @@
         }
       }
     },
-    "clippy@1.93.0": {
-      "last_modified": "2026-02-23T15:40:43Z",
-      "resolved": "github:NixOS/nixpkgs/80d901ec0377e19ac3f7bb8c035201e2e098cc97#clippy",
+    "clippy@1.94.0": {
+      "last_modified": "2026-03-21T07:29:51Z",
+      "resolved": "github:NixOS/nixpkgs/09061f748ee21f68a089cd5d91ec1859cd93d0be#clippy",
       "source": "devbox-search",
-      "version": "1.93.0",
+      "version": "1.94.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/xaqjf38v233s2i60jpjhv9akyd5zkw0m-clippy-1.93.0",
+              "path": "/nix/store/zhiy290rs2xwi9146nyz9w72q0sa9iq1-clippy-1.94.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/xaqjf38v233s2i60jpjhv9akyd5zkw0m-clippy-1.93.0"
+          "store_path": "/nix/store/zhiy290rs2xwi9146nyz9w72q0sa9iq1-clippy-1.94.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/gypngfg4hdpsfvjpswa95g77zz47r78v-clippy-1.93.0",
+              "path": "/nix/store/3kzb29f2vdd064wwglzs39lcl47445qw-clippy-1.94.0",
               "default": true
             },
             {
               "name": "debug",
-              "path": "/nix/store/2p0f4abpa9w0cgi7853ad8fqiv4rzsv2-clippy-1.93.0-debug"
+              "path": "/nix/store/zwqafbp2qzx695rrqfv26x242qrly6m7-clippy-1.94.0-debug"
             }
           ],
-          "store_path": "/nix/store/gypngfg4hdpsfvjpswa95g77zz47r78v-clippy-1.93.0"
+          "store_path": "/nix/store/3kzb29f2vdd064wwglzs39lcl47445qw-clippy-1.94.0"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/i3m6fpdk1n1nqbb5gqzyjsn1lksqp60b-clippy-1.93.0",
+              "path": "/nix/store/18ifg6w6fv8zjb9219p41jdymdldqb37-clippy-1.94.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/i3m6fpdk1n1nqbb5gqzyjsn1lksqp60b-clippy-1.93.0"
+          "store_path": "/nix/store/18ifg6w6fv8zjb9219p41jdymdldqb37-clippy-1.94.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/0yj3hz7imj1zxmppn9gfps8h2jmvdi7g-clippy-1.93.0",
+              "path": "/nix/store/mzg6zmhw137mbbpq8z68ndq2rijmfwpb-clippy-1.94.0",
               "default": true
             },
             {
               "name": "debug",
-              "path": "/nix/store/5v47mbiidhck8rzw141hvmwkh515pfg3-clippy-1.93.0-debug"
+              "path": "/nix/store/vd37d32bbaqlz5mq3wr5wsll5kc8fdc9-clippy-1.94.0-debug"
             }
           ],
-          "store_path": "/nix/store/0yj3hz7imj1zxmppn9gfps8h2jmvdi7g-clippy-1.93.0"
+          "store_path": "/nix/store/mzg6zmhw137mbbpq8z68ndq2rijmfwpb-clippy-1.94.0"
         }
       }
     },
