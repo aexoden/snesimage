@@ -1,25 +1,26 @@
 {
-  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.1/.schema/devbox.schema.json",
   "packages": {
-    "cargo":      "1.94.0",
     "cargo-deny": "0.19.0",
-    "clippy":     "1.94.0",
     "pre-commit": "4.5.1",
-    "rustc":      "1.94.0",
-    "rustfmt":    "1.94.0",
+    "rustup": "1.28.2",
     "SDL2": {
       "version": "2.32.64",
       "outputs": ["out", "dev"]
     }
   },
   "shell": {
-    "init_hook": ["cargo fetch", "pre-commit install"],
+    "init_hook": [
+      "rustup toolchain install",
+      "cargo fetch",
+      "pre-commit install"
+    ],
     "scripts": {
       "build-docs": "cargo doc",
-      "start":      "cargo run",
-      "test":       "cargo test -- --show-output",
-      "format":     "cargo fmt --all -- --check",
-      "lint":       "cargo clippy --workspace -- -D warnings"
+      "start": "cargo run",
+      "test": "cargo test -- --show-output",
+      "format": "cargo fmt --all -- --check",
+      "lint": "cargo clippy --workspace -- -D warnings"
     }
   }
 }
