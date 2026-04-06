@@ -2,7 +2,6 @@
 name = "snesimage"
 version = "0.1.1"
 edition = "2024"
-rust-version = "1.93"
 description = "Tool to optimize images for use on the SNES"
 repository = "https://github.com/aexoden/snesimage"
 license = "MIT OR Apache-2.0"
