@@ -9,7 +9,7 @@ keywords = ["graphics", "retro"]
 categories = ["multimedia::images"]
 
 [dependencies]
-anyhow = { version = "=1.0.100", features = ["backtrace"] }
+anyhow = { version = "=1.0.102", features = ["backtrace"] }
 cached = "=0.59.0"
 chrono = { version = "=0.4.42", default-features = false, features = ["clock"] }
 clap = { version = "=4.5.49", features = ["derive"] }
