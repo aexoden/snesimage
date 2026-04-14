@@ -18,7 +18,7 @@ fern = { version = "=0.7.1", features = ["colored"] }
 image = "=0.25.8"
 log = "=0.4.29"
 palette = "=0.7.6"
-rand = "=0.10.0"
+rand = "=0.10.1"
 rgb = "=0.8.53"
 sdl2 = "=0.38.0"
 serde_json = "=1.0.145"
