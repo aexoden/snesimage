@@ -3,7 +3,7 @@
   "packages": {
     "cargo-deny": "0.19.0",
     "pre-commit": "4.5.1",
-    "rustup": "1.28.2",
+    "rustup": "1.29.0",
     "SDL2": {
       "version": "2.32.64",
       "outputs": ["out", "dev"]
