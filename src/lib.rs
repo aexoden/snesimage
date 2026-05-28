@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use anyhow::{Context, anyhow};
-use cached::proc_macro::cached;
+use cached::macros::cached;
 use cogset::{Euclid, Kmeans};
 use log::info;
 use palette::{FromColor, IntoColor, Lab, Srgb, color_difference::Ciede2000};
