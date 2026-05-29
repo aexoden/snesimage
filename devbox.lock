@@ -1,67 +1,67 @@
 {
   "lockfile_version": "1",
   "packages": {
-    "SDL2@2.32.66": {
-      "last_modified": "2026-04-23T13:07:47Z",
-      "resolved": "github:NixOS/nixpkgs/01fbdeef22b76df85ea168fbfe1bfd9e63681b30#SDL2",
+    "SDL2@2.32.68": {
+      "last_modified": "2026-05-21T08:15:18Z",
+      "resolved": "github:NixOS/nixpkgs/4a29d733e8a7d5b824c3d8c958a946a9867b3eb2#SDL2",
       "source": "devbox-search",
-      "version": "2.32.66",
+      "version": "2.32.68",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/nz8rqvna83m8jhvypx6iginp3ffniijy-sdl2-compat-2.32.66",
+              "path": "/nix/store/1frhnmg2aak3f4msx0zc2zx1mirhzb2i-sdl2-compat-2.32.68",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/mj1da9kp2w9m2yjxqzrsg8gh9ksn3gkc-sdl2-compat-2.32.66-dev"
+              "path": "/nix/store/p64wvhbzz2b55sn9m9pz5r4cjvjqgn8n-sdl2-compat-2.32.68-dev"
             }
           ],
-          "store_path": "/nix/store/nz8rqvna83m8jhvypx6iginp3ffniijy-sdl2-compat-2.32.66"
+          "store_path": "/nix/store/1frhnmg2aak3f4msx0zc2zx1mirhzb2i-sdl2-compat-2.32.68"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/s3hv5yvy3wmfnc3dhljzyh4nvfzwpi5v-sdl2-compat-2.32.66",
+              "path": "/nix/store/x9pi525y579vlj9zdsqv3r63wxc4ryh1-sdl2-compat-2.32.68",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/77xzig01grbxv8dif47l0y4sbyf2rpzj-sdl2-compat-2.32.66-dev"
+              "path": "/nix/store/zcbvzrr0wbxwi45z4wjq169q7rfhk2w4-sdl2-compat-2.32.68-dev"
             }
           ],
-          "store_path": "/nix/store/s3hv5yvy3wmfnc3dhljzyh4nvfzwpi5v-sdl2-compat-2.32.66"
+          "store_path": "/nix/store/x9pi525y579vlj9zdsqv3r63wxc4ryh1-sdl2-compat-2.32.68"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/qipznd0lgligr7wlk4k5wl6h5850in98-sdl2-compat-2.32.66",
+              "path": "/nix/store/0n361549kz54wv7r5mxhsvama48q4lm0-sdl2-compat-2.32.68",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/38h7mgxk9yhh0klg0pcw00yirhnqdxza-sdl2-compat-2.32.66-dev"
+              "path": "/nix/store/armbyf560bir2vxmb1pkvp9fi4d4r4x1-sdl2-compat-2.32.68-dev"
             }
           ],
-          "store_path": "/nix/store/qipznd0lgligr7wlk4k5wl6h5850in98-sdl2-compat-2.32.66"
+          "store_path": "/nix/store/0n361549kz54wv7r5mxhsvama48q4lm0-sdl2-compat-2.32.68"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/xi0qrpbi7453ixgqbi5f57s9j5yv9xgq-sdl2-compat-2.32.66",
+              "path": "/nix/store/nmsf94bbhljgc0yvc74bxi8nvi0h7dwi-sdl2-compat-2.32.68",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/dn8z9l0z1cl9kj6hyyqv0s3xp2gw2nry-sdl2-compat-2.32.66-dev"
+              "path": "/nix/store/v1kvfspid0wnwg3k843ckzm8w1l6jhhy-sdl2-compat-2.32.68-dev"
             }
           ],
-          "store_path": "/nix/store/xi0qrpbi7453ixgqbi5f57s9j5yv9xgq-sdl2-compat-2.32.66"
+          "store_path": "/nix/store/nmsf94bbhljgc0yvc74bxi8nvi0h7dwi-sdl2-compat-2.32.68"
         }
       }
     },
