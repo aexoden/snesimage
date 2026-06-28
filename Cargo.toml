@@ -16,7 +16,7 @@ clap = { version = "=4.6.1", features = ["derive"] }
 cogset = "=0.2.0"
 fern = { version = "=0.7.1", features = ["colored"] }
 image = "=0.25.10"
-log = "=0.4.32"
+log = "=0.4.33"
 palette = "=0.7.6"
 rand = "=0.10.1"
 rgb = "=0.8.53"
