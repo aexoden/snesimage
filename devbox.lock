@@ -90,12 +90,12 @@
       }
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "last_modified": "2026-07-12T00:30:12Z",
-      "resolved": "github:NixOS/nixpkgs/3b32825de172d0bc85664f495edb096b10862524?lastModified=1783816212&narHash=sha256-2aZisVTVGSFEk3MYcOiWQp3zvwyzbqpktB69Rcfp150%3D"
+      "last_modified": "2026-07-19T09:25:00Z",
+      "resolved": "github:NixOS/nixpkgs/b471514bed69eff5255c8e63c1f80e5fe56c616f?lastModified=1784453100&narHash=sha256-zpGZb8FYui%2Bi8KLtC0nlcmb0voR2zB80Qn8pe7lzIbk%3D"
     },
     "pre-commit@4.5.1": {
-      "last_modified": "2026-06-27T07:37:20Z",
-      "resolved": "github:NixOS/nixpkgs/3d46470bb3030020f7e1361f33514854f5bfa86d#pre-commit",
+      "last_modified": "2026-07-16T04:38:10Z",
+      "resolved": "github:NixOS/nixpkgs/6368bc923cec55a5f78960ade0cb4dd99580e087#pre-commit",
       "source": "devbox-search",
       "version": "4.5.1",
       "systems": {
@@ -103,29 +103,29 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/3a82wd5rc40p6nb5m6q779pm6mb5z54s-pre-commit-4.5.1",
+              "path": "/nix/store/8mfgjmy794c9qqfkcw9823dzky0xzq5d-pre-commit-4.5.1",
               "default": true
             },
             {
               "name": "dist",
-              "path": "/nix/store/sp0ikhh5qy1m8sx78n1d0bbfngcxiqap-pre-commit-4.5.1-dist"
+              "path": "/nix/store/0lcvv6k1i2pbydiwc6flgkk4ms4h5vd4-pre-commit-4.5.1-dist"
             }
           ],
-          "store_path": "/nix/store/3a82wd5rc40p6nb5m6q779pm6mb5z54s-pre-commit-4.5.1"
+          "store_path": "/nix/store/8mfgjmy794c9qqfkcw9823dzky0xzq5d-pre-commit-4.5.1"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/f3y3xqyq6bwqpxma3b1vgrgg27gmwcla-pre-commit-4.5.1",
+              "path": "/nix/store/jllcb0s4jwa58dqpmfi4xf17hr1shymj-pre-commit-4.5.1",
               "default": true
             },
             {
               "name": "dist",
-              "path": "/nix/store/xx4dp6ajrcnhlakanf0y7jl406ri1chs-pre-commit-4.5.1-dist"
+              "path": "/nix/store/0k89c1mycy90cyq8y5mgs74cra643p98-pre-commit-4.5.1-dist"
             }
           ],
-          "store_path": "/nix/store/f3y3xqyq6bwqpxma3b1vgrgg27gmwcla-pre-commit-4.5.1"
+          "store_path": "/nix/store/jllcb0s4jwa58dqpmfi4xf17hr1shymj-pre-commit-4.5.1"
         },
         "x86_64-darwin": {
           "outputs": [
@@ -145,22 +145,22 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/pi00kf1m0bs82i4f3gjhyjavczhza541-pre-commit-4.5.1",
+              "path": "/nix/store/9ldykp2kvir7iv1hd81vm7iv9nxggc0q-pre-commit-4.5.1",
               "default": true
             },
             {
               "name": "dist",
-              "path": "/nix/store/h99x0cd5s00nyp3l9f9cr8wlzm811vaz-pre-commit-4.5.1-dist"
+              "path": "/nix/store/nx10s2g8xdks461l1bzsm0dp79q08va0-pre-commit-4.5.1-dist"
             }
           ],
-          "store_path": "/nix/store/pi00kf1m0bs82i4f3gjhyjavczhza541-pre-commit-4.5.1"
+          "store_path": "/nix/store/9ldykp2kvir7iv1hd81vm7iv9nxggc0q-pre-commit-4.5.1"
         }
       }
     },
     "rustup@1.29.0": {
-      "last_modified": "2026-06-27T07:37:20Z",
+      "last_modified": "2026-07-08T21:13:06Z",
       "plugin_version": "0.0.1",
-      "resolved": "github:NixOS/nixpkgs/3d46470bb3030020f7e1361f33514854f5bfa86d#rustup",
+      "resolved": "github:NixOS/nixpkgs/389ed85304b281ca7f306cf8a1eb4378651ca44e#rustup",
       "source": "devbox-search",
       "version": "1.29.0",
       "systems": {
@@ -168,21 +168,21 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/v3r8r9l3qmxm9sb4gsnnrhz4xcz82fl2-rustup-1.29.0",
+              "path": "/nix/store/8jj66zrimxgsb4zzjn3ksbd2abxjcq2p-rustup-1.29.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/v3r8r9l3qmxm9sb4gsnnrhz4xcz82fl2-rustup-1.29.0"
+          "store_path": "/nix/store/8jj66zrimxgsb4zzjn3ksbd2abxjcq2p-rustup-1.29.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/1ghz0g8a4p12amgzdsn0g7s47vzawxph-rustup-1.29.0",
+              "path": "/nix/store/9vj55909r9midg5sz7v2g4x8kjczf1l7-rustup-1.29.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/1ghz0g8a4p12amgzdsn0g7s47vzawxph-rustup-1.29.0"
+          "store_path": "/nix/store/9vj55909r9midg5sz7v2g4x8kjczf1l7-rustup-1.29.0"
         },
         "x86_64-darwin": {
           "outputs": [
@@ -198,11 +198,11 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/cxx967kpb69s62f8xh97qq1r2lhj6i3s-rustup-1.29.0",
+              "path": "/nix/store/319n2f2mzydj40lf2yqmhfbb453j8bbv-rustup-1.29.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/cxx967kpb69s62f8xh97qq1r2lhj6i3s-rustup-1.29.0"
+          "store_path": "/nix/store/319n2f2mzydj40lf2yqmhfbb453j8bbv-rustup-1.29.0"
         }
       }
     }
