@@ -10,7 +10,7 @@ categories = ["multimedia::images"]
 
 [dependencies]
 anyhow = { version = "=1.0.104", features = ["backtrace"] }
-cached = "=2.0.2"
+cached = "=4.0.0"
 chrono = { version = "=0.4.45", default-features = false, features = ["clock"] }
 clap = { version = "=4.6.6", features = ["derive"] }
 cogset = "=0.2.0"
