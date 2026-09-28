@@ -52,8 +52,8 @@
       }
     },
     "cargo-deny@0.20.2": {
-      "last_modified": "2026-08-27T07:16:00Z",
-      "resolved": "github:NixOS/nixpkgs/c27cdad491a991b11ed731760aa2ef8db0cb0410#cargo-deny",
+      "last_modified": "2026-09-27T03:42:02Z",
+      "resolved": "github:NixOS/nixpkgs/8d5d270900d3fc75655ea2d9d248b234f6631439#cargo-deny",
       "source": "devbox-search",
       "version": "0.20.2",
       "systems": {
@@ -61,37 +61,37 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/nlckq0jhr4y7sn5x47hlhq56c2fgn023-cargo-deny-0.20.2",
+              "path": "/nix/store/q00ilaiqjp5vxvl3944grl7698iz4894-cargo-deny-0.20.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/nlckq0jhr4y7sn5x47hlhq56c2fgn023-cargo-deny-0.20.2"
+          "store_path": "/nix/store/q00ilaiqjp5vxvl3944grl7698iz4894-cargo-deny-0.20.2"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/1qrmrw5g6krig256b70gfki6657albax-cargo-deny-0.20.2",
+              "path": "/nix/store/46nrgkq27f4klv3blb29y75yl1xpy2gs-cargo-deny-0.20.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/1qrmrw5g6krig256b70gfki6657albax-cargo-deny-0.20.2"
+          "store_path": "/nix/store/46nrgkq27f4klv3blb29y75yl1xpy2gs-cargo-deny-0.20.2"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/4mdp104vc5j205rd3h7zh9cy2y2ik2jj-cargo-deny-0.20.2",
+              "path": "/nix/store/7sdb8z3cg58dnwvmx61kqwy8qra6a20b-cargo-deny-0.20.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/4mdp104vc5j205rd3h7zh9cy2y2ik2jj-cargo-deny-0.20.2"
+          "store_path": "/nix/store/7sdb8z3cg58dnwvmx61kqwy8qra6a20b-cargo-deny-0.20.2"
         }
       }
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "last_modified": "2026-09-18T09:35:58Z",
-      "resolved": "github:NixOS/nixpkgs/0a3468a402c449992505b6a9fc5b06580141b750?lastModified=1789724158&narHash=sha256-nlKgrm0dsVhOSopKheVBCcOpiIticufPPVLdVOI0euA%3D"
+      "last_modified": "2026-09-27T11:55:07Z",
+      "resolved": "github:NixOS/nixpkgs/3181085bfd08663b6b9e60bc7a8395c2aaa741bd?lastModified=1790510107&narHash=sha256-EVMNYv7hYDDD9TGVT%2FhIyTYgpiXA8y3m5xIEIxuGNU0%3D"
     },
     "pre-commit@4.5.1": {
       "last_modified": "2026-08-27T07:16:00Z",
@@ -158,9 +158,9 @@
       }
     },
     "rustup@1.29.0": {
-      "last_modified": "2026-08-27T07:16:00Z",
+      "last_modified": "2026-09-19T18:56:16Z",
       "plugin_version": "0.0.1",
-      "resolved": "github:NixOS/nixpkgs/c27cdad491a991b11ed731760aa2ef8db0cb0410#rustup",
+      "resolved": "github:NixOS/nixpkgs/79b35bf0bda5cd110f856aa5b5b2c5ba4460dbf5#rustup",
       "source": "devbox-search",
       "version": "1.29.0",
       "systems": {
@@ -168,21 +168,21 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/1x8jzaxfv0bak76xkr5li258cal51n99-rustup-1.29.0",
+              "path": "/nix/store/sc6j867802r27yni5r9bk251wlwfbwf3-rustup-1.29.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/1x8jzaxfv0bak76xkr5li258cal51n99-rustup-1.29.0"
+          "store_path": "/nix/store/sc6j867802r27yni5r9bk251wlwfbwf3-rustup-1.29.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/iwq43bwclkay14x5x5bfj955ffphaqff-rustup-1.29.0",
+              "path": "/nix/store/z6r60fwh700r3r1vdsvmjmypyxv4qi3g-rustup-1.29.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/iwq43bwclkay14x5x5bfj955ffphaqff-rustup-1.29.0"
+          "store_path": "/nix/store/z6r60fwh700r3r1vdsvmjmypyxv4qi3g-rustup-1.29.0"
         },
         "x86_64-darwin": {
           "outputs": [
@@ -198,11 +198,11 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/cdgc1rh9s22n5i5cgr96vda0pjx1xg3x-rustup-1.29.0",
+              "path": "/nix/store/yfb4m0ppkap16a2isbfaxqn4kgy0xz4r-rustup-1.29.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/cdgc1rh9s22n5i5cgr96vda0pjx1xg3x-rustup-1.29.0"
+          "store_path": "/nix/store/yfb4m0ppkap16a2isbfaxqn4kgy0xz4r-rustup-1.29.0"
         }
       }
     }
