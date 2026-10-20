@@ -5,7 +5,7 @@
     "pre-commit": "4.6.2",
     "rustup": "1.29.1",
     "SDL2": {
-      "version": "2.32.72",
+      "version": "2.32.74",
       "outputs": ["out", "dev"]
     }
   },
