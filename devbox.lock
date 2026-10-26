@@ -2,8 +2,8 @@
   "lockfile_version": "1",
   "packages": {
     "SDL2@2.32.74": {
-      "last_modified": "2026-10-19T15:20:57Z",
-      "resolved": "github:NixOS/nixpkgs/682ba80136e2c8dacd6b8900f578a72329458901#SDL2",
+      "last_modified": "2026-10-24T03:22:33Z",
+      "resolved": "github:NixOS/nixpkgs/674a2028661e550a97400c1cc992b9cca9a668a1#SDL2",
       "source": "devbox-search",
       "version": "2.32.74",
       "systems": {
@@ -11,49 +11,49 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/0iavzysws1y9adz6zy46ksrlx2pna712-sdl2-compat-2.32.74",
+              "path": "/nix/store/9ana0b8phv2bxcnqqawrf9rrdsr9606l-sdl2-compat-2.32.74",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/6nffrbxgfnf93k7rfigsrimis495r1fr-sdl2-compat-2.32.74-dev"
+              "path": "/nix/store/argac2ha9jif7s54a16ypv227vz2ygrn-sdl2-compat-2.32.74-dev"
             }
           ],
-          "store_path": "/nix/store/0iavzysws1y9adz6zy46ksrlx2pna712-sdl2-compat-2.32.74"
+          "store_path": "/nix/store/9ana0b8phv2bxcnqqawrf9rrdsr9606l-sdl2-compat-2.32.74"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/9qkvx8c89fqsz63f4z9gngk9hpi00ss4-sdl2-compat-2.32.74",
+              "path": "/nix/store/vh44k1ypcm6bs8sg20b1c3i5h67nrxjy-sdl2-compat-2.32.74",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/bvkdsh7ix8yjq9y27dfc773pcm7w1d8c-sdl2-compat-2.32.74-dev"
+              "path": "/nix/store/nhc0ffnrysi02ynp8k0yh04fb2ivdmii-sdl2-compat-2.32.74-dev"
             }
           ],
-          "store_path": "/nix/store/9qkvx8c89fqsz63f4z9gngk9hpi00ss4-sdl2-compat-2.32.74"
+          "store_path": "/nix/store/vh44k1ypcm6bs8sg20b1c3i5h67nrxjy-sdl2-compat-2.32.74"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/p26sgw6f8a56cy4jaawm15vmjgln78yq-sdl2-compat-2.32.74",
+              "path": "/nix/store/chir7my8hgkinwv7hqa3xdxx6g3dmggm-sdl2-compat-2.32.74",
               "default": true
             },
             {
               "name": "dev",
-              "path": "/nix/store/4ilqdmk9p231ymm62sn7gmfk8m2ins65-sdl2-compat-2.32.74-dev"
+              "path": "/nix/store/b7z0xrx8693jg547rwfi3fazvrm1wkyk-sdl2-compat-2.32.74-dev"
             }
           ],
-          "store_path": "/nix/store/p26sgw6f8a56cy4jaawm15vmjgln78yq-sdl2-compat-2.32.74"
+          "store_path": "/nix/store/chir7my8hgkinwv7hqa3xdxx6g3dmggm-sdl2-compat-2.32.74"
         }
       }
     },
     "cargo-deny@0.20.2": {
-      "last_modified": "2026-10-07T01:26:01Z",
-      "resolved": "github:NixOS/nixpkgs/7dd199b0e2993e37b4775ed66b1c291699608c9f#cargo-deny",
+      "last_modified": "2026-10-24T03:22:33Z",
+      "resolved": "github:NixOS/nixpkgs/674a2028661e550a97400c1cc992b9cca9a668a1#cargo-deny",
       "source": "devbox-search",
       "version": "0.20.2",
       "systems": {
@@ -61,41 +61,41 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/2hfpfpznmzq7a169zfgmj20f355wrs6n-cargo-deny-0.20.2",
+              "path": "/nix/store/xhr5w7b93hn0lx2a6yahf63kjz7c42dw-cargo-deny-0.20.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/2hfpfpznmzq7a169zfgmj20f355wrs6n-cargo-deny-0.20.2"
+          "store_path": "/nix/store/xhr5w7b93hn0lx2a6yahf63kjz7c42dw-cargo-deny-0.20.2"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/0rjb249ap4833mr2lr4npcq6j893q09q-cargo-deny-0.20.2",
+              "path": "/nix/store/3bm2naqv96ri3vfljca4i8n9rb322i2j-cargo-deny-0.20.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/0rjb249ap4833mr2lr4npcq6j893q09q-cargo-deny-0.20.2"
+          "store_path": "/nix/store/3bm2naqv96ri3vfljca4i8n9rb322i2j-cargo-deny-0.20.2"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/awlky4pcmv00g5wm1kcqv5fk2k670k8z-cargo-deny-0.20.2",
+              "path": "/nix/store/d06nmx3jrs73dgb64k6wrpmisnnjr8pf-cargo-deny-0.20.2",
               "default": true
             }
           ],
-          "store_path": "/nix/store/awlky4pcmv00g5wm1kcqv5fk2k670k8z-cargo-deny-0.20.2"
+          "store_path": "/nix/store/d06nmx3jrs73dgb64k6wrpmisnnjr8pf-cargo-deny-0.20.2"
         }
       }
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "last_modified": "2026-10-16T02:15:57Z",
-      "resolved": "github:NixOS/nixpkgs/f20cd90e28fe0403873f473b29e42662cd86e8c4?lastModified=1792116957&narHash=sha256-EjZqHKObBfIOeHZnMRVV87HB3pPq%2FWBkmRJWyFxmZu8%3D"
+      "last_modified": "2026-10-24T03:22:33Z",
+      "resolved": "github:NixOS/nixpkgs/674a2028661e550a97400c1cc992b9cca9a668a1?lastModified=1792812153&narHash=sha256-T2%2BXBfNbf9pecLUWS4%2BRtuVNZ3W8K5taG5QdV71mWlk%3D"
     },
     "pre-commit@4.7.0": {
-      "last_modified": "2026-10-19T15:20:57Z",
-      "resolved": "github:NixOS/nixpkgs/682ba80136e2c8dacd6b8900f578a72329458901#pre-commit",
+      "last_modified": "2026-10-24T03:22:33Z",
+      "resolved": "github:NixOS/nixpkgs/674a2028661e550a97400c1cc992b9cca9a668a1#pre-commit",
       "source": "devbox-search",
       "version": "4.7.0",
       "systems": {
@@ -103,50 +103,50 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/f8k52gmq533qcam11146rf48c5r3zniw-pre-commit-4.7.0",
+              "path": "/nix/store/rwdgddbqgwddprxvikhz11vl1l8z5y6x-pre-commit-4.7.0",
               "default": true
             },
             {
               "name": "dist",
-              "path": "/nix/store/2c46x0fhjxqfnvpi6rxfn896dapinnkr-pre-commit-4.7.0-dist"
+              "path": "/nix/store/mzv0n69j0yi9wy12yyvg6psjf6qmpgya-pre-commit-4.7.0-dist"
             }
           ],
-          "store_path": "/nix/store/f8k52gmq533qcam11146rf48c5r3zniw-pre-commit-4.7.0"
+          "store_path": "/nix/store/rwdgddbqgwddprxvikhz11vl1l8z5y6x-pre-commit-4.7.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/x9vhrmk217xhm5b24maird32r7rcyndi-pre-commit-4.7.0",
+              "path": "/nix/store/qppkw6nb8zlhdys3i7v8n45hn7vda1w1-pre-commit-4.7.0",
               "default": true
             },
             {
               "name": "dist",
-              "path": "/nix/store/mliy7yy4gd84kcn36z4mqax73546w7pv-pre-commit-4.7.0-dist"
+              "path": "/nix/store/dlc1ipbc8svl908ngsf5738z9r4ifa58-pre-commit-4.7.0-dist"
             }
           ],
-          "store_path": "/nix/store/x9vhrmk217xhm5b24maird32r7rcyndi-pre-commit-4.7.0"
+          "store_path": "/nix/store/qppkw6nb8zlhdys3i7v8n45hn7vda1w1-pre-commit-4.7.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/siv4cmnqm1bm2cq8znjkrfvw4m0samyp-pre-commit-4.7.0",
+              "path": "/nix/store/991crigd77xgiwjdp1h5wngq3w4vzziw-pre-commit-4.7.0",
               "default": true
             },
             {
               "name": "dist",
-              "path": "/nix/store/gakhz2wrx81xjcvg1hk8jqa8cwlpbz5b-pre-commit-4.7.0-dist"
+              "path": "/nix/store/gphmlc4mx8pzh52fy605jclka0h87wyk-pre-commit-4.7.0-dist"
             }
           ],
-          "store_path": "/nix/store/siv4cmnqm1bm2cq8znjkrfvw4m0samyp-pre-commit-4.7.0"
+          "store_path": "/nix/store/991crigd77xgiwjdp1h5wngq3w4vzziw-pre-commit-4.7.0"
         }
       }
     },
     "rustup@1.29.1": {
-      "last_modified": "2026-10-08T19:21:32Z",
+      "last_modified": "2026-10-20T14:23:57Z",
       "plugin_version": "0.0.1",
-      "resolved": "github:NixOS/nixpkgs/8edc0c72e3a38faf5434e40d1f19431125fe4b30#rustup",
+      "resolved": "github:NixOS/nixpkgs/5adc50831c259f87faeb09ddf930d43597197473#rustup",
       "source": "devbox-search",
       "version": "1.29.1",
       "systems": {
@@ -154,31 +154,31 @@
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/apvdnyx3si9li3dms2igganafx0gz4d8-rustup-1.29.1",
+              "path": "/nix/store/mysqxkbpck8hcz33zf1sbryqxq1vmah4-rustup-1.29.1",
               "default": true
             }
           ],
-          "store_path": "/nix/store/apvdnyx3si9li3dms2igganafx0gz4d8-rustup-1.29.1"
+          "store_path": "/nix/store/mysqxkbpck8hcz33zf1sbryqxq1vmah4-rustup-1.29.1"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/zhwwzhmgxyr5xkglzi8y50hbvfwys251-rustup-1.29.1",
+              "path": "/nix/store/z5fwb1020i3rf4qk88w3jkf1cm6yg175-rustup-1.29.1",
               "default": true
             }
           ],
-          "store_path": "/nix/store/zhwwzhmgxyr5xkglzi8y50hbvfwys251-rustup-1.29.1"
+          "store_path": "/nix/store/z5fwb1020i3rf4qk88w3jkf1cm6yg175-rustup-1.29.1"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/s5g2mz2zr526hfvzf7si9ghsd221nn6z-rustup-1.29.1",
+              "path": "/nix/store/nsnd1r5zs3x5hlpp1ilzdjmq0c57cay8-rustup-1.29.1",
               "default": true
             }
           ],
-          "store_path": "/nix/store/s5g2mz2zr526hfvzf7si9ghsd221nn6z-rustup-1.29.1"
+          "store_path": "/nix/store/nsnd1r5zs3x5hlpp1ilzdjmq0c57cay8-rustup-1.29.1"
         }
       }
     }
