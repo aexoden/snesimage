@@ -51,41 +51,41 @@
         }
       }
     },
-    "cargo-deny@0.20.2": {
-      "last_modified": "2026-10-24T03:22:33Z",
-      "resolved": "github:NixOS/nixpkgs/674a2028661e550a97400c1cc992b9cca9a668a1#cargo-deny",
+    "cargo-deny@0.21.0": {
+      "last_modified": "2026-11-21T08:18:15Z",
+      "resolved": "github:NixOS/nixpkgs/93a9ed0a866099a230ed5146a5bb7d16fd5c9b14#cargo-deny",
       "source": "devbox-search",
-      "version": "0.20.2",
+      "version": "0.21.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/xhr5w7b93hn0lx2a6yahf63kjz7c42dw-cargo-deny-0.20.2",
+              "path": "/nix/store/x059dz1vap0mcy4r6v9ljkg71cycndmz-cargo-deny-0.21.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/xhr5w7b93hn0lx2a6yahf63kjz7c42dw-cargo-deny-0.20.2"
+          "store_path": "/nix/store/x059dz1vap0mcy4r6v9ljkg71cycndmz-cargo-deny-0.21.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/3bm2naqv96ri3vfljca4i8n9rb322i2j-cargo-deny-0.20.2",
+              "path": "/nix/store/k6nfyrhs5abwmvywssgfcxx2mmj44b4z-cargo-deny-0.21.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/3bm2naqv96ri3vfljca4i8n9rb322i2j-cargo-deny-0.20.2"
+          "store_path": "/nix/store/k6nfyrhs5abwmvywssgfcxx2mmj44b4z-cargo-deny-0.21.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/d06nmx3jrs73dgb64k6wrpmisnnjr8pf-cargo-deny-0.20.2",
+              "path": "/nix/store/mi736pldiv2jm1xskl041dz0fs1cgwjz-cargo-deny-0.21.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/d06nmx3jrs73dgb64k6wrpmisnnjr8pf-cargo-deny-0.20.2"
+          "store_path": "/nix/store/mi736pldiv2jm1xskl041dz0fs1cgwjz-cargo-deny-0.21.0"
         }
       }
     },
